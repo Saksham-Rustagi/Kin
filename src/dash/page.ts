@@ -297,7 +297,7 @@ function addLog(e, extraCls) {
 
 // ---------- memory map ----------
 const KINDS = {
-  asha:   { emoji: "\u{1F475}", a: "#fff7d6", b: "#ffcf7a", c: "#f08f3c", name: "Asha" },
+  asha:   { emoji: "\u{1F475}", a: "#fff7d6", b: "#ffcf7a", c: "#f08f3c", name: "Gammy" },
   person: { emoji: "\u{1F9D1}", a: "#e6fbff", b: "#7fd8ff", c: "#1b8fd6", name: "Family" },
   pet:    { emoji: "\u{1F436}", a: "#f0ffe0", b: "#a6ec7c", c: "#3ea73a", name: "Pets" },
   place:  { emoji: "\u{1F4CD}", a: "#e3fffa", b: "#6fe9d6", c: "#119c94", name: "Places" },
@@ -637,7 +637,7 @@ function wireButtons() {
   rem.onclick = () => {
     rem.disabled = true;
     post("/dash/test-reminder")
-      .then(() => addLog({ at: new Date().toISOString(), level: "info", text: "Test reminder from Priya: due in 15 s" }))
+      .then(() => addLog({ at: new Date().toISOString(), level: "info", text: "Test reminder from Nicole: due in 15 s" }))
       .catch((err) => addLog({ at: new Date().toISOString(), level: "error", text: "Test reminder failed: " + err.message }))
       .finally(() => { setTimeout(() => { rem.disabled = false; }, 3000); });
   };
@@ -668,13 +668,13 @@ function startDemo() {
   const health = (over) => handle(Object.assign({ kind: "health", local: true, cloud: true, tunnel: true, gemini: { used: gem, limit: 500 } }, over || {}));
   applyGraph({
     nodes: [
-      { id: "asha", label: "Asha", kind: "asha", memories: 40 },
-      { id: "priya", label: "Priya", kind: "person", relation: "granddaughter", memories: 9 },
-      { id: "raj", label: "Raj", kind: "person", relation: "son", memories: 12 },
-      { id: "anita", label: "Anita", kind: "person", relation: "daughter", memories: 7 },
+      { id: "asha", label: "Gammy", kind: "asha", memories: 40 },
+      { id: "priya", label: "Nicole", kind: "person", relation: "granddaughter", memories: 9 },
+      { id: "raj", label: "Mike", kind: "person", relation: "son", memories: 12 },
+      { id: "anita", label: "Linda", kind: "person", relation: "daughter", memories: 7 },
       { id: "biscuit", label: "Biscuit", kind: "pet", memories: 5 },
       { id: "austin", label: "Austin", kind: "place", memories: 3 },
-      { id: "diwali", label: "Diwali 2025", kind: "event", memories: 4 },
+      { id: "diwali", label: "Thanksgiving 2025", kind: "event", memories: 4 },
     ],
     links: [
       { source: "asha", target: "priya", rel: "granddaughter" },
@@ -689,15 +689,15 @@ function startDemo() {
   health();
   handle({ kind: "log", at: T(), level: "info", text: "Watcher online \u00B7 reading the family thread" });
   const steps = [
-    () => { gem++; health(); handle({ kind: "decision", at: T(), from: "Raj", preview: "Biscuit had his first swim at Barton Springs today!! Tell Mom he was so brave, sending pics \u{1F436}\u{1F4A6}", rules: ["R1 21 days", "R3 Biscuit"], action: "card", cardId: "c_101", ms: 2100, highlight: ["raj", "biscuit"] }); },
-    () => { gem++; health(); handle({ kind: "decision", at: T(), from: "Unknown number", preview: "Grandma it's Priya, I lost my phone. Please buy two Google Play gift cards and text me the codes, don't tell Mom", rules: ["P1 gift cards", "P4 claims Priya"], action: "protect", ms: 1400, highlight: ["priya"] });
-            handle({ kind: "log", at: T(), level: "warn", text: "Held a suspicious message and let Anita know" }); },
-    () => { gem++; health(); handle({ kind: "decision", at: T(), from: "Priya", preview: "Nani!! I start my new job at Duke tomorrow, nurse on the kids' floor \u{1F499}", rules: ["M1 new fact", "R2 Priya"], action: "memory", memoryId: "m_77", ms: 1900, highlight: ["priya"] });
+    () => { gem++; health(); handle({ kind: "decision", at: T(), from: "Mike", preview: "Biscuit had his first swim at Barton Springs today!! Tell Mom he was so brave, sending pics \u{1F436}\u{1F4A6}", rules: ["R1 21 days", "R3 Biscuit"], action: "card", cardId: "c_101", ms: 2100, highlight: ["raj", "biscuit"] }); },
+    () => { gem++; health(); handle({ kind: "decision", at: T(), from: "Unknown number", preview: "Grandma it's Nicole, I lost my phone. Please buy two Google Play gift cards and text me the codes, don't tell Mom", rules: ["P1 gift cards", "P4 claims Nicole"], action: "protect", ms: 1400, highlight: ["priya"] });
+            handle({ kind: "log", at: T(), level: "warn", text: "Held a suspicious message and let Linda know" }); },
+    () => { gem++; health(); handle({ kind: "decision", at: T(), from: "Nicole", preview: "Gammy!! I start my new job at Duke tomorrow, nurse on the kids' floor \u{1F499}", rules: ["M1 new fact", "R2 Nicole"], action: "memory", memoryId: "m_77", ms: 1900, highlight: ["priya"] });
             setTimeout(() => handle({ kind: "graph", op: "add_node", node: { id: "duke", label: "Duke", kind: "place", memories: 1 } }), 700);
             setTimeout(() => handle({ kind: "graph", op: "add_link", link: { source: "priya", target: "duke", rel: "works at" } }), 1300);
             setTimeout(() => handle({ kind: "graph", op: "highlight", ids: ["priya", "duke"] }), 1500); },
-    () => { handle({ kind: "decision", at: T(), from: "Anita", preview: "lol \u{1F602}", rules: ["Q2 trivial"], action: "quiet", ms: 300 }); },
-    () => { gem++; health(); handle({ kind: "decision", at: T(), from: "Anita", preview: "Mom's eye doctor appointment is Tuesday at 10am, I'll pick her up at 9:30", rules: ["T1 appointment", "R2 Anita"], action: "reminder", ms: 1800, highlight: ["anita", "asha"] }); },
+    () => { handle({ kind: "decision", at: T(), from: "Linda", preview: "lol \u{1F602}", rules: ["Q2 trivial"], action: "quiet", ms: 300 }); },
+    () => { gem++; health(); handle({ kind: "decision", at: T(), from: "Linda", preview: "Mom's eye doctor appointment is Tuesday at 10am, I'll pick her up at 9:30", rules: ["T1 appointment", "R2 Linda"], action: "reminder", ms: 1800, highlight: ["anita", "asha"] }); },
     () => { health({ tunnel: false }); handle({ kind: "log", at: T(), level: "error", text: "Tunnel dropped, reconnecting\u2026" }); },
     () => { health(); handle({ kind: "log", at: T(), level: "info", text: "Tunnel back up" }); },
   ];
@@ -721,7 +721,7 @@ export function renderDashboard(opts: DashOptions = {}): string {
     '<div class="sky" aria-hidden="true"><div class="sun"></div><div class="rays"></div><div class="horizon"></div><div class="water"></div></div>\n' +
     '<div class="bubbles" aria-hidden="true">' + bubbleSpans() + "</div>\n" +
     '<header class="topbar glass">\n' +
-    '  <div class="brand"><div class="logo">k</div><div><h1>' + title + '</h1><div class="sub">Live view of Asha\'s memory helper</div></div></div>\n' +
+    '  <div class="brand"><div class="logo">k</div><div><h1>' + title + '</h1><div class="sub">Live view of Gammy\'s memory helper</div></div></div>\n' +
     '  <div class="pills">\n' +
     '    <span id="conn" class="pill"><span class="dot"></span><span class="v">Connecting…</span></span>\n' +
     '    <span id="h-local" class="pill">Local watcher <span class="v">…</span></span>\n' +

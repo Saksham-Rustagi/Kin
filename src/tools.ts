@@ -89,7 +89,7 @@ export async function handleTool(name: string, secret: string | null, args: any)
   return say(false, "unknown tool", 404);
 }
 
-/** The talk ended: note it on the card, but never overwrite an existing status like "Sent to Priya ✓". */
+/** The talk ended: note it on the card, but never overwrite an existing status like "Sent to Nicole ✓". */
 export async function onTalkEnded(cardId: string): Promise<boolean> {
   const c = getCard(cardId);
   if (!c || c.data.status) return false;

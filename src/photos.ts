@@ -75,12 +75,12 @@ Fill the schema:
   return gen<PhotoMemory>("photo_memory", [{ text: prompt }, inline("image/jpeg", jpeg)], photoMemorySchema, { timeoutMs: 20_000 });
 }
 
-/** One Gemini call: Asha's voice note → transcript + what she wants. */
+/** One Gemini call: Gammy's voice note → transcript + what she wants. */
 export async function understandVoice(wav: Buffer, familyNames: string[], ashaName: string): Promise<VoiceIntent | null> {
   const prompt = `${ashaName}, 78, living with memory loss, sent Kin (her helper) this voice message. Her family: ${familyNames.join(", ")}.
 Fill the schema:
 - transcript: exactly what she said.
-- intent: "reply" if she wants a message sent to a family member ("tell Priya I can't wait to see her"); "call_me" if she wants someone to call her; "question" if she asks who someone is; else "other".
+- intent: "reply" if she wants a message sent to a family member ("tell Nicole I can't wait to see her"); "call_me" if she wants someone to call her; "question" if she asks who someone is; else "other".
 - to_person: the family name she means (one of: ${familyNames.join(", ")}), or null.
 - text: for "reply", the message to send in HER words, first person, addressed to that person, cleaned up, max 120 characters (e.g. "I can't wait to see you!"). For "question", the name she asked about. Else "".`;
   return gen<VoiceIntent>("voice_intent", [{ text: prompt }, inline("audio/wav", wav)], voiceIntentSchema, { timeoutMs: 20_000 });

@@ -16,14 +16,14 @@ export function setTransport(t: Transport) { T = t; }
 
 export type Turn = { from: string; chatId: string | null; isGroup: boolean; texts: string[]; ids: string[]; at: Date; attachments: { name: string; mimeType: string; read?: () => Promise<Buffer> }[] };
 
-const call = () => config.ashaCalledBy; // "Nani"
+const call = () => config.ashaCalledBy; // "Gammy"
 const today = () => new Date().toLocaleDateString("en-CA", { timeZone: config.tz });
 const CANNED = ["❤️ Thank you!", "Sounds good", "Call me soon"];
 /** Never send money, codes or personal info as her (hard rule 3), whatever the tap payload says. */
 const SENSITIVE = /\$|money|gift ?card|password|\bcode\b|bank|social security|card number|\d{4,}/i;
 
 // =====================================================================================
-// Family → Asha (local, her real thread): RECOGNIZE
+// Family → Gammy (local, her real thread): RECOGNIZE
 // =====================================================================================
 export async function onFamilyToAsha(person: Person, turn: Turn) {
   const t0 = Date.now();
@@ -48,7 +48,7 @@ Known people and things in the family memory: ${knownNamesForPrompt()}.
 Candidate memories (choose at most ONE that relates to THIS message or this sender; id: text [date]):
 ${cands0.map((m) => `- ${m.id}: ${m.text}${m.happened_on ? ` [${m.happened_on}]` : ""}`).join("\n") || "- (none)"}
 Fill the schema:
-- memory_id/memory_line: ONE short statement (max 12 words) about ${person.name} built ONLY from the chosen memory, e.g. "${person.pronoun === "he" ? "He" : "She"} visited two weeks ago with mangoes". If the memory has a date, say when relative to today ("two weeks ago", "last October"), never just a weekday. null if nothing fits.
+- memory_id/memory_line: ONE short statement (max 12 words) about ${person.name} built ONLY from the chosen memory, e.g. "${person.pronoun === "he" ? "He" : "She"} visited two weeks ago with apple pie". If the memory has a date, say when relative to today ("two weeks ago", "last October"), never just a weekday. null if nothing fits.
 - replies: up to 3 replies ${config.ashaName} could send back, first person, max 5 words each, warm and adult (an emoji is fine). No money, no promises of dates/times. Empty array if nothing to reply to.
 - summary: max 18 words, only if the message is long or confusing; else null.
 - calm_note: only if the tone is stressful: restate calmly with the facts unchanged; else null.
@@ -110,7 +110,7 @@ Fill the schema:
   void learnFromThread(person, text, turn.ids[0]);
 }
 
-/** Durable facts about the sender from Asha's thread with ENROLLED family only (never anyone else's thread). */
+/** Durable facts about the sender from Gammy's thread with ENROLLED family only (never anyone else's thread). */
 async function learnFromThread(person: Person, text: string, msgId?: string) {
   if (!person.enrolled || looksTrivial(text) || text.split(/\s+/).length < 5) return;
   const r = await gen<ThreadFacts>("thread_facts", `Today is ${today()}. ${person.name} (${config.ashaName}'s ${person.relation}) wrote to ${config.ashaName}:
@@ -125,7 +125,7 @@ Extract ONLY durable, new facts about ${person.name} worth remembering for month
 }
 
 // =====================================================================================
-// Unknown → Asha (local): PROTECT
+// Unknown → Gammy (local): PROTECT
 // =====================================================================================
 export async function onUnknownToAsha(turn: Turn) {
   const t0 = Date.now();
@@ -136,10 +136,10 @@ export async function onUnknownToAsha(turn: Turn) {
   const famNames = people().map((p) => p.name);
   const assess = await gen<AssessCompose>("assess_unknown", `An UNKNOWN sender (not in the family memory) texted ${config.ashaName}, 78, living with memory loss:
 """${text}"""
-Family names: ${famNames.join(", ")}. Score scam risk 0-100 for an older person; list signals; claimsToBe = the family name or role they claim to be (e.g. "Priya", "grandson"), else null. Leave replies empty and memory fields null.`, assessSchema);
+Family names: ${famNames.join(", ")}. Score scam risk 0-100 for an older person; list signals; claimsToBe = the family name or role they claim to be (e.g. "Nicole", "grandson"), else null. Leave replies empty and memory fields null.`, assessSchema);
   const isShortCode = /^\+?\d{3,6}$/.test(from);
   const d = decideUnknown({ text, assess, familyNames: famNames, isShortCode });
-  if (blocked) d.rules.unshift("blocked by Priya");
+  if (blocked) d.rules.unshift("blocked by Nicole");
 
   if (d.action === "quiet") { decision({ from: mask(from), preview: text, rules: d.rules, action: "quiet", ms: Date.now() - t0 }); return; }
   const cg = caregiver();
@@ -210,7 +210,7 @@ export async function onCardAction(cardId: string, action: string, payload: any)
     return { ok: true, toast: `Sent to ${person.name} ✓` };
   }
 
-  // Q1: "I know Priya" — only suppresses R1 (long gap); mentions, long messages, questions and stress still make cards.
+  // Q1: "I know Nicole" — only suppresses R1 (long gap); mentions, long messages, questions and stress still make cards.
   if (action === "know" && row.type === "context") {
     const person = personById(data.meta.personId);
     if (!person) return { ok: false };
@@ -246,7 +246,7 @@ export async function onCardAction(cardId: string, action: string, payload: any)
     return { ok: true, toast: `I asked ${cg.name} ✓` };
   }
 
-  // Her voice note → "Send to Priya?" card. Text and recipient come from the stored card (not the tap payload).
+  // Her voice note → "Send to Nicole?" card. Text and recipient come from the stored card (not the tap payload).
   if (action === "send_voice_reply" && row.type === "info" && data.meta.voiceReply) {
     if (row.state === "replied") return { ok: true, toast: "Already sent ✓" };
     if (row.state === "cancelled") return { ok: true, toast: "Okay, I didn't send it." };
@@ -286,7 +286,7 @@ export async function onCardAction(cardId: string, action: string, payload: any)
 }
 
 // =====================================================================================
-// Asha → Kin (cloud): tapbacks, "who is…", "tell Priya to call me"
+// Gammy → Kin (cloud): tapbacks, "who is…", "tell Nicole to call me"
 // =====================================================================================
 export async function onAshaToKin(c: { type: string; text?: string; emoji?: string; targetId?: string }) {
   if (c.type === "reaction" && c.targetId) {
@@ -316,7 +316,7 @@ export async function onAshaToKin(c: { type: string; text?: string; emoji?: stri
   await outOfScope();
 }
 
-/** "Tell Priya to call me" (typed or spoken): ask that person (default: the caregiver) to call her. */
+/** "Tell Nicole to call me" (typed or spoken): ask that person (default: the caregiver) to call her. */
 async function askToCall(name: string | null, preview: string) {
   const p = (name && personByName(name)) || caregiver();
   if (!p) return;
@@ -329,7 +329,7 @@ const outOfScope = () => T.sendText(config.ashaHandle, `I can help with your fam
 const sending = new Set<string>();
 
 // =====================================================================================
-// Asha's voice notes → Kin (cloud): Gemini listens; nothing is sent as her without her tap.
+// Gammy's voice notes → Kin (cloud): Gemini listens; nothing is sent as her without her tap.
 // =====================================================================================
 export async function onAshaVoiceToKin(bytes: Buffer, mimeType: string, msgId: string) {
   const t0 = Date.now();
@@ -474,13 +474,13 @@ ${person.name} (${config.ashaName}'s ${person.relation}, the person texting Kin)
 """${text}"""
 "${call()}", "Mom", "Grandma" and "her" mean ${config.ashaName}. Known people and things: ${knownNamesForPrompt()}.
 Classify the intent:
-- memory: a fact to remember about the family ("Remember: Raj's dog is Biscuit", "I started a new job at Duke").
+- memory: a fact to remember about the family ("Remember: Mike's dog is Biscuit", "I started a new job at Duke").
 - reminder: asks Kin to remind ${config.ashaName} of something. Fill reminder.text in the family's words addressed to her (e.g. "take your 2pm pill 💊"), due_local "HH:MM" 24h if a clock time is given, in_minutes if relative ("in 5 minutes"), daily if every day.
 - urgent: asks Kin to make sure she sees a message. about_me: asks what Kin knows about them. forget: "forget that"/"undo". other: anything else.
 For memory: entities (new names only), edges (src/dst are names; rel like owns, lives_in, works_at, studies_at, married_to, parent_of; label is a short human label like "dog", "works at"), memories (about = the name the fact is about; text = one third-person sentence; happened_on YYYY-MM-DD resolved against Now, or null). If the sender says "I", the name is ${person.name}.
-confirmation: a short warm reply to ${person.name} confirming what Kin will do, in Kin's voice ("Got it: Biscuit is Raj's dog 🐶"). Never claim to have done anything not listed.`, familySchema);
+confirmation: a short warm reply to ${person.name} confirming what Kin will do, in Kin's voice ("Got it: Biscuit is Mike's dog 🐶"). Never claim to have done anything not listed.`, familySchema);
 
-  if (!u) { await reply("Sorry, I couldn't understand that just now. Try “Remember: …” or “Remind Nani to …”."); return; }
+  if (!u) { await reply("Sorry, I couldn't understand that just now. Try “Remember: …” or “Remind Gammy to …”."); return; }
   switch (u.intent) {
     case "memory": {
       const kinds = new Map(u.entities.map((e) => [e.name.toLowerCase(), e.kind]));

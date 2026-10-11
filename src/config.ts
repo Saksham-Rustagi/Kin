@@ -17,14 +17,14 @@ export function normalizeHandle(h: string | undefined | null): string {
 export const config = {
   projectId: env.SPECTRUM_PROJECT_ID || env.PROJECT_ID || "",
   projectSecret: env.SPECTRUM_PROJECT_SECRET || env.PROJECT_SECRET || "",
-  /** Asha's handle that Kin's cloud line can reach (must be a phone number on the Pro shared pool). */
+  /** Gammy's handle that Kin's cloud line can reach (must be a phone number on the Pro shared pool). */
   ashaHandle: normalizeHandle(env.GRANDMA_HANDLE),
-  /** Other handles that belong to Asha (e.g. her iCloud email) — recognised on inbound. */
+  /** Other handles that belong to Gammy (e.g. her iCloud email) — recognised on inbound. */
   ashaAliases: list(env.GRANDMA_ALIASES).map(normalizeHandle),
-  /** Caregiver's phone (Priya). */
+  /** Caregiver's phone (Nicole). */
   caregiverHandle: normalizeHandle(env.CAREGIVER_HANDLE || env.PRIYA_HANDLE),
   kinLines: new Set(list(env.KIN_LINE_HANDLES).map(normalizeHandle)),
-  /** Testing safety net: only these senders are ever processed from the local (Asha's Mac) stream. Empty = nobody; "*" = everyone. */
+  /** Testing safety net: only these senders are ever processed from the local (Gammy's Mac) stream. Empty = nobody; "*" = everyone. */
   allowSenders: list(env.TEST_SENDERS).map(normalizeHandle),
   publicBase: (env.PUBLIC_BASE_URL || "").replace(/\/$/, ""),
   signingSecret: env.KIN_SIGNING_SECRET || "dev-secret",
@@ -44,8 +44,8 @@ export const config = {
   debounceMs: Number(env.DEBOUNCE_MS || 4000),
   port: Number(env.PORT || 3000),
   dataDir: env.KIN_DATA_DIR || "data",
-  ashaName: env.ASHA_NAME || "Asha",
-  ashaCalledBy: env.ASHA_CALLED_BY || "Nani", // what family calls her in alerts: "Mom"/"Nani"
+  ashaName: env.ASHA_NAME || "Gammy",
+  ashaCalledBy: env.ASHA_CALLED_BY || "Gammy", // what family calls her in alerts: "Mom"/"Gammy"
   /** Process local messages that arrived while Kin was down (resume from the saved chat.db ROWID). */
   resumeLocal: env.KIN_RESUME_LOCAL !== "0",
 };

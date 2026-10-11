@@ -31,8 +31,8 @@ const S = "test-tool-secret";
 const priya = personByHandle("+15555550100")!;
 const asAsha = () => T.sent.filter((s) => s.kind === "as_asha").length;
 
-// Context card from Priya
-await kin.onFamilyToAsha(priya, turn("+15555550100", "Hi Nani! Coming over Sunday with mangoes again 🥭 Are you free for lunch?"));
+// Context card from Nicole
+await kin.onFamilyToAsha(priya, turn("+15555550100", "Hi Gammy! Coming over Sunday with apple pie again 🥧 Are you free for lunch?"));
 const c1 = db.query("SELECT * FROM card WHERE type='context' ORDER BY created_at DESC LIMIT 1").get() as any;
 check("context card created", !!c1);
 const vars = talkVariables(c1.id);
@@ -53,13 +53,13 @@ check("mark_reminder_done on context card rejected", !(await handleTool("mark_re
 let n = T.sent.length;
 const r1 = await handleTool("send_reply", S, { card_id: c1.id, text: "Yes, see you Sunday!" });
 console.log("   send_reply →", JSON.stringify(r1.body));
-check("send_reply ok", r1.status === 200 && r1.body.ok && /Sent to Priya/.test(r1.body.message));
-check("exactly one as_asha to Priya", asAsha() === 1 && T.sent.slice(n).some((s) => s.kind === "as_asha" && s.to === "+15555550100"));
+check("send_reply ok", r1.status === 200 && r1.body.ok && /Sent to Nicole/.test(r1.body.message));
+check("exactly one as_asha to Nicole", asAsha() === 1 && T.sent.slice(n).some((s) => s.kind === "as_asha" && s.to === "+15555550100"));
 check("card → replied", getCard(c1.id)!.row.state === "replied");
 const r2 = await handleTool("send_reply", S, { card_id: c1.id, text: "Yes, see you Sunday!" });
 check("second call idempotent", r2.body.ok && asAsha() === 1, r2.body.message);
 
-// talk end must not overwrite "Sent to Priya ✓"
+// talk end must not overwrite "Sent to Nicole ✓"
 const before = getCard(c1.id)!.data.status?.text;
 await onTalkEnded(c1.id);
 check("talk end keeps existing status", getCard(c1.id)!.data.status?.text === before, before ?? "");
@@ -81,13 +81,13 @@ if (rem?.card_id) {
 }
 
 // Talk end on a fresh card adds the note
-await kin.onFamilyToAsha(priya, turn("+15555550100", "Raj got a new job at the library! He starts Monday."));
+await kin.onFamilyToAsha(priya, turn("+15555550100", "Mike got a new job at the library! He starts Monday."));
 const c2 = db.query("SELECT * FROM card WHERE type='context' ORDER BY created_at DESC LIMIT 1").get() as any;
 if (c2 && c2.id !== c1.id) {
   await onTalkEnded(c2.id);
   check("talk end note added", /talked with Kin/.test(getCard(c2.id)!.data.status?.text ?? ""));
   const a = await handleTool("ask_family_to_call", S, { card_id: c2.id });
-  check("ask_family_to_call ok + text to Priya", a.body.ok && T.sent.some((s) => s.kind === "text" && s.to === "+15555550100" && /call her/.test(s.text ?? "")), a.body.message);
+  check("ask_family_to_call ok + text to Nicole", a.body.ok && T.sent.some((s) => s.kind === "text" && s.to === "+15555550100" && /call her/.test(s.text ?? "")), a.body.message);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

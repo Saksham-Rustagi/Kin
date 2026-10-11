@@ -74,7 +74,7 @@ talk.onclick = async () => {
     const body = await (await fetch("/talk/test/session", {method:"POST"})).json();
     if (!body.ok) throw new Error(body.error);
     conv = await Conversation.startSession({ conversationToken: body.conversationToken, connectionType: "webrtc",
-      dynamicVariables: { asha_name: "Asha", reason: "test", from_name: "Priya", relation: "granddaughter", message_text: "Can't wait to see you Sunday", reminder_text: "", reply_options: "Hi Priya!" },
+      dynamicVariables: { asha_name: "Gammy", reason: "test", from_name: "Nicole", relation: "granddaughter", message_text: "Can't wait to see you Sunday", reminder_text: "", reply_options: "Hi Nicole!" },
       onConnect: () => { diag("connected"); talk.textContent = "Listening"; end.style.display = "block"; s.textContent = "You're talking to Kin."; },
       onModeChange: ({mode}) => { diag("mode", {mode}); talk.textContent = mode === "speaking" ? "Kin is speaking" : "Listening"; },
       onDisconnect: (d) => { diag("disconnect", {d: String(d?.reason ?? "")}); s.textContent = "Call ended."; talk.textContent = "Done"; end.style.display = "none"; },

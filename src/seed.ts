@@ -8,9 +8,9 @@ export function seed() {
   db.exec("DELETE FROM person; DELETE FROM handle; DELETE FROM entity; DELETE FROM edge; DELETE FROM memory; DELETE FROM card; DELETE FROM reminder; DELETE FROM alert; DELETE FROM blocked; DELETE FROM message;");
   db.exec("DELETE FROM kv WHERE key NOT LIKE 'local_rowid%'");
   const P = db.query("INSERT INTO person (id, name, relation, emoji, is_caregiver, pronoun, last_contact_at, known_by_asha) VALUES (?,?,?,?,?,?,?,0)");
-  P.run("priya", "Priya", "granddaughter", "👩🏽", 1, "she", daysAgo(12));
-  P.run("raj", "Raj", "son", "👨🏽", 0, "he", daysAgo(21));
-  P.run("anita", "Anita", "daughter", "👩🏽‍💼", 0, "she", daysAgo(3));
+  P.run("priya", "Nicole", "granddaughter", "👩🏽", 1, "she", daysAgo(12));
+  P.run("raj", "Mike", "son", "👨🏽", 0, "he", daysAgo(21));
+  P.run("anita", "Linda", "daughter", "👩🏽‍💼", 0, "she", daysAgo(3));
   const H = db.query("INSERT OR REPLACE INTO handle (address, person_id, confirmed) VALUES (?,?,1)");
   if (config.caregiverHandle) H.run(config.caregiverHandle, "priya");
   for (const h of (process.env.RAJ_HANDLES || "+15555550101").split(",")) H.run(normalizeHandle(h), "raj");
@@ -19,7 +19,7 @@ export function seed() {
   const E = db.query("INSERT INTO entity (id, kind, name, aliases, emoji) VALUES (?,?,?,?,?)");
   E.run("biscuit", "pet", "Biscuit", JSON.stringify(["biscuit the dog"]), "🐶");
   E.run("austin", "place", "Austin", "[]", "📍");
-  E.run("diwali_2025", "event", "Diwali 2025", JSON.stringify(["diwali"]), "🪔");
+  E.run("diwali_2025", "event", "Thanksgiving 2025", JSON.stringify(["diwali"]), "🪔");
   E.run("unc", "place", "UNC", JSON.stringify(["chapel hill", "carolina"]), "🎓");
 
   const G = db.query("INSERT INTO edge (src, rel, dst, label, added_by, at) VALUES (?,?,?,?,?,?)");
@@ -30,13 +30,13 @@ export function seed() {
   G.run("raj", "attended", "diwali_2025", "celebrated", "priya", nowIso());
 
   const M = db.query("INSERT INTO memory (id, about, text, happened_on, added_by, source, created_at) VALUES (?,?,?,?,?,?,?)");
-  M.run("m_01", "priya", "Priya visited Asha on Sunday, Sept 27, and brought mangoes", "2026-09-27", "priya", "family_to_kin", nowIso());
-  M.run("m_02", "priya", "Priya is studying nursing at UNC in Chapel Hill", null, "priya", "family_to_kin", nowIso());
-  M.run("m_03", "raj", "Raj lives in Austin with his dog Biscuit", null, "priya", "family_to_kin", nowIso());
-  M.run("m_04", "biscuit", "Biscuit is Raj's golden retriever", null, "priya", "family_to_kin", nowIso());
-  M.run("m_05", "diwali_2025", "Asha, Priya and Raj celebrated Diwali 2025 together at Raj's house in Austin", "2025-10-20", "priya", "family_to_kin", nowIso());
-  M.run("m_06", "anita", "Anita takes care of Asha's bills", null, "priya", "family_to_kin", nowIso());
-  M.run("m_07", "raj", "Raj calls Asha every Sunday evening", null, "anita", "family_to_kin", nowIso());
+  M.run("m_01", "priya", "Nicole visited Gammy on Sunday, Sept 27, and brought apple pie", "2026-09-27", "priya", "family_to_kin", nowIso());
+  M.run("m_02", "priya", "Nicole is studying nursing at UNC in Chapel Hill", null, "priya", "family_to_kin", nowIso());
+  M.run("m_03", "raj", "Mike lives in Austin with his dog Biscuit", null, "priya", "family_to_kin", nowIso());
+  M.run("m_04", "biscuit", "Biscuit is Mike's golden retriever", null, "priya", "family_to_kin", nowIso());
+  M.run("m_05", "diwali_2025", "Gammy, Nicole and Mike celebrated Thanksgiving 2025 together at Mike's house in Austin", "2025-10-20", "priya", "family_to_kin", nowIso());
+  M.run("m_06", "anita", "Linda takes care of Gammy's bills", null, "priya", "family_to_kin", nowIso());
+  M.run("m_07", "raj", "Mike calls Gammy every Sunday evening", null, "anita", "family_to_kin", nowIso());
 }
 
 if (import.meta.main) {

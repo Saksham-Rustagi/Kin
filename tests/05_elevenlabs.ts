@@ -12,7 +12,7 @@ console.log("agent status=", ag.status, "name=", aj?.name, "tts model=", aj?.con
 const t0 = Date.now();
 const tts = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`, {
   method: "POST", headers: { ...H, "content-type": "application/json", accept: "audio/mpeg" },
-  body: JSON.stringify({ text: "[warmly] Asha, this message is from Priya, your granddaughter. She says she can't wait to see you Sunday.", model_id: "eleven_v4" }) });
+  body: JSON.stringify({ text: "[warmly] Gammy, this message is from Nicole, your granddaughter. She says she can't wait to see you Sunday.", model_id: "eleven_v4" }) });
 const hdr: Record<string,string> = {}; tts.headers.forEach((v,k)=>{ if (/char|request-id|limit|cost/i.test(k)) hdr[k]=v; });
 console.log("tts status=", tts.status, "ms=", Date.now() - t0, "headers=", JSON.stringify(hdr));
 if (!tts.ok) { console.log(await tts.text()); process.exit(1); }

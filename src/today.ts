@@ -8,7 +8,7 @@ import { prefetchAudio } from "./voice";
 const localDate = (ms = Date.now()) => new Date(ms).toLocaleDateString("en-CA", { timeZone: config.tz }); // YYYY-MM-DD
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-/** "2:00 PM · Take your 2pm pill 💊 (from Priya)" for each reminder due today (local time). */
+/** "2:00 PM · Take your 2pm pill 💊 (from Nicole)" for each reminder due today (local time). */
 function todayReminders(): string[] {
   const today = localDate();
   const rows = db.query("SELECT * FROM reminder ORDER BY due_at").all() as Reminder[];
@@ -18,7 +18,7 @@ function todayReminders(): string[] {
   });
 }
 
-/** Visits/events from the memory graph dated today or in the next 7 days: "Tomorrow · Priya is visiting with mangoes". */
+/** Visits/events from the memory graph dated today or in the next 7 days: "Tomorrow · Nicole is visiting with apple pie". */
 function upcoming(): string[] {
   const days = Array.from({ length: 8 }, (_, i) => localDate(Date.now() + i * 86400_000));
   const qs = days.map(() => "?").join(",");

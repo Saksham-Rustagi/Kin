@@ -40,7 +40,7 @@ function utilRow(v: CardView, extra: string[] = []): string {
 export function renderCard(v: CardView): string {
   const th = THEME[v.type] ?? THEME.context;
   const replies = v.buttons.filter((b) => b.action === "reply");
-  const know = v.buttons.find((b) => b.action === "know"); // "I know Priya" lives on the reply screen only
+  const know = v.buttons.find((b) => b.action === "know"); // "I know Nicole" lives on the reply screen only
   const others = v.buttons.filter((b) => b.action !== "reply" && b.action !== "know");
   const first = v.title.split(" ")[0];
   const glyph = v.state === "done" || v.state === "replied" || v.state === "confirmed_safe" ? "✅" : v.type === "protect" ? "🛡️" : v.type === "reminder" ? "💊" : "💬";

@@ -22,7 +22,7 @@ export function scamSignals(text: string): string[] {
   return SCAM_PATTERNS.filter(([re]) => re.test(text)).map(([, label]) => label);
 }
 
-/** "Grandma it's Priya", "this is Raj", "it's me, your grandson" → claimed identity. */
+/** "Grandma it's Nicole", "this is Mike", "it's me, your grandson" → claimed identity. */
 export function claimedIdentity(text: string, familyNames: string[]): string | null {
   for (const n of familyNames) {
     if (new RegExp(`\\b(it'?s|this is|i'?m|it is|from)\\s+${n}\\b`, "i").test(text)) return n;

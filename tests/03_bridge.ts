@@ -13,7 +13,7 @@ if (!ALLOW.length) { console.error("Set TEST_SENDERS in .env (the phone that wil
 const app = await Spectrum({ projectId: PROJECT_ID!, projectSecret: PROJECT_SECRET!, providers: [localIMessage.config(), imessage.config()] });
 const im = imessage(app);
 const kinThread = await im.space.create(await im.user(GRANDMA_HANDLE!));
-console.log("Bridge running. From Priya's phone, text Grandma's Apple ID normally.");
+console.log("Bridge running. From Nicole's phone, text Grandma's Apple ID normally.");
 for await (const [space, message] of app.messages) {
   if (message.platform === "local_imessage" && (process.env.KIN_LINE_HANDLES ?? "").split(",").includes(message.sender?.id ?? "")) { console.log("  (echo of Kin's own message dropped)"); continue; }
   if (message.platform === "local_imessage" && !allowed(message.sender?.id)) { console.log(`(ignored a message from someone else; ${++ignored} so far)`); continue; }
