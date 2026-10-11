@@ -172,6 +172,12 @@ Device smoke tests from the build (local listen, cloud card, bridge, Gemini, Ele
 - A consent flow in chat (Kin asks Asha "Is that okay?" before anything starts), the ☀️ morning card, and co-design sessions with people living with dementia and their caregivers before any real launch *(S32, S30)*.
 
 
+## Also built
+- **Voice notes from Asha** → a "Send to Priya?" confirm card; nothing sends without her tap.
+- **👍 I know Priya** → Kin steps back for people she recognizes (but still helps with questions, unfamiliar names and stress).
+- **☀️ Today card** at 8 AM with today's reminders and upcoming visits.
+- **Demo robustness:** a Gemini-off fallback test, a keep-alive runner (`scripts/run.sh`), and dashboard Reset / Test reminder / Today buttons.
+
 ## Gallery
 | | | |
 |---|---|---|

@@ -16,13 +16,16 @@ Kin has its own iMessage contact. The family keeps texting Asha as before. Kin r
 - **Protect:** an unknown number asking for gift cards, or claiming to be family, gets a calm red card ("Please don't send money or codes. I've let Priya know."). Links can't be tapped. Priya is alerted and replies SAFE or SCAM, and the card updates in place. Kin never replies to the sender.
 - **Remind:** Priya texts Kin "remind Nani to take her 2pm pill." At 2pm Asha gets a green card *from Priya*. ✅ (or a 👍 tapback) sends Priya "Nani did it ✅". If there's no answer, Kin nudges once, then tells Priya.
 - **Listen and Talk to Kin:** 🔊 reads the card aloud with the text still on screen. 🎙️ opens a voice conversation **inside the iMessage card** that reads a reply back and sends it only after she says "yes."
+- **Voice notes from Asha:** she holds the mic in Kin's thread and says "Tell Priya I can't wait to see her." Kin turns it into a "Send to Priya?" card, and **nothing is sent until she taps ✅ Send**.
+- **👍 I know Priya:** Asha can tell Kin she recognizes someone, and Kin steps back for them. It still steps in for questions, names she may not place, or stressful messages.
+- **☀️ Today card:** at 8 AM, a calm card with today's reminders and upcoming visits, built by code from what the family set.
 - **Family memories:** "Remember: Raj's dog is Biscuit," or a captioned photo, pops onto the dashboard's memory map.
 
 ## How we built it
 
 One Bun process runs **both Photon Spectrum providers**. The local provider reads Asha's `chat.db` and sends as her, and the cloud provider is Kin's line, which sends `app()` cards and updates them with `edit()`. Card taps POST to our Bun server through a tunnel, using HMAC-signed URLs.
 
-**Gemini 3.5 Flash-Lite** gets one structured-JSON call per family message: triage, memory pick, replies, and a photo caption. Gemini also does vision for photo memories and audio for Asha's voice notes. **Plain code decides every action:** rules R1–R7, Q1–Q3 and P1–P4 in `decide.ts`, and `verifyMemoryLine()` drops any memory that isn't a real candidate or names someone it shouldn't. If Gemini is down, a regex still catches scams.
+**Gemini 3.5 Flash-Lite** gets one structured-JSON call per family message: triage, memory pick, replies, and a photo caption. Gemini also does vision for photo memories and audio for Asha's voice notes. **Plain code decides every action:** rules R1–R7, Q1–Q3 and P1–P4 in `decide.ts`, and `verifyMemoryLine()` drops any memory that isn't a real candidate or names someone it shouldn't. If Gemini is down, the rules still produce cards with fixed replies and no memory line (never invented), and a regex still catches scams. Replay tests with a fake transport cover the whole pipeline: 34 checks with real Gemini, 19 for the Talk to Kin tools, and 13 with Gemini switched off.
 
 **ElevenLabs** `eleven_v4` makes the in-card Listen audio. Conversational AI runs Talk to Kin over WebRTC in the card webview, with three webhook tools that our server re-checks before acting.
 
