@@ -18,15 +18,16 @@ const dm = await im.space.create(await im.user(TARGET));
 
 const css = `
 :root{color-scheme:light}*{box-sizing:border-box}
-body{margin:0;min-height:100vh;font:20px -apple-system,system-ui,sans-serif;color:#0b2a4a;
-background:linear-gradient(180deg,#bfe9ff 0%,#7fd0ff 45%,#2fa8e0 100%);display:flex;align-items:center;justify-content:center;padding:20px}
-.panel{width:100%;max-width:560px;background:rgba(255,255,255,.82);border-radius:28px;padding:28px;text-align:center;
+html,body{height:100%}
+body{margin:0;font:clamp(14px,5vmin,22px) -apple-system,system-ui,sans-serif;color:#0b2a4a;
+background:linear-gradient(180deg,#bfe9ff 0%,#7fd0ff 45%,#2fa8e0 100%);display:flex;align-items:center;justify-content:center;padding:2vmin;overflow:hidden}
+.panel{width:100%;max-width:560px;max-height:100%;background:rgba(255,255,255,.82);border-radius:6vmin;padding:3vmin 4vmin;text-align:center;
 box-shadow:0 10px 30px rgba(0,60,120,.25),inset 0 1px 0 #fff;backdrop-filter:blur(8px)}
-h1{font-size:40px;margin:.2em 0}
-.btn{display:block;width:100%;min-height:72px;margin:14px 0;border:0;border-radius:999px;font:700 26px -apple-system,system-ui;color:#fff;
+h1{font-size:clamp(18px,8vmin,40px);margin:.1em 0}
+.btn{display:block;width:100%;min-height:clamp(40px,14vmin,72px);margin:2vmin 0;border:0;border-radius:999px;font:700 clamp(15px,6vmin,26px) -apple-system,system-ui;color:#fff;
 background:linear-gradient(180deg,#6ee07a 0%,#22a63a 55%,#1b8f31 100%);box-shadow:0 6px 14px rgba(0,80,30,.3),inset 0 2px 0 rgba(255,255,255,.6)}
 .blue{background:linear-gradient(180deg,#7cc8ff 0%,#1f8fe0 55%,#1678c2 100%)}
-#s{font-size:22px;min-height:1.4em}`;
+#s{min-height:1.4em}`;
 
 function cardPage() {
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -52,8 +53,11 @@ function talkPage() {
 <title>Talk to Kin</title><style>${css}</style></head><body><div class="panel">
 <h1>🎙️ Talk to Kin</h1><button class="btn" id="talk">Tap to talk</button><div id="s">Allow the microphone when asked.</div>
 <button class="btn" id="end" style="display:none;background:linear-gradient(180deg,#ff8a7a,#d9342b)">End</button>
-<a href="${BASE}/talk/test" target="_blank" style="font-size:18px">Open in Safari instead</a>
+<button class="btn blue" id="safari">Open in Safari</button>
+<button class="btn blue" id="textme">Text me the link</button>
 </div><script type="module">
+document.getElementById("safari").onclick = () => { diag("safari-click"); window.open(${JSON.stringify(BASE)} + "/talk/test?via=safari", "_blank"); };
+document.getElementById("textme").onclick = async () => { diag("textme-click"); await fetch("/talk/test/link", {method:"POST"}); document.getElementById("s").textContent = "Kin texted you the link. Tap it in Messages."; };
 const s = document.getElementById("s"), talk = document.getElementById("talk"), end = document.getElementById("end");
 const diag = (ev, extra={}) => fetch("/diag", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({page:"talk", ev, ua:navigator.userAgent, md:!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia), rtc: typeof RTCPeerConnection, secure:isSecureContext, ...extra})}).catch(()=>{});
 diag("load");
@@ -62,7 +66,10 @@ talk.onclick = async () => {
   if (conv) return; talk.disabled = true; s.textContent = "Connecting…";
   try {
     if (!navigator.mediaDevices?.getUserMedia) throw Object.assign(new Error("no getUserMedia in this view"), {name:"NoMediaDevices"});
-    const st = await navigator.mediaDevices.getUserMedia({audio:true}); diag("mic-ok", {tracks: st.getAudioTracks().length}); st.getTracks().forEach(x=>x.stop());
+    diag("mic-request");
+    const st = await Promise.race([navigator.mediaDevices.getUserMedia({audio:true}),
+      new Promise((_, rej) => setTimeout(() => rej(Object.assign(new Error("microphone request never answered"), {name:"MicTimeout"})), 6000))]);
+    diag("mic-ok", {tracks: st.getAudioTracks().length}); st.getTracks().forEach(x=>x.stop());
     const { Conversation } = await import(${JSON.stringify(ELEVENLABS_CLIENT)});
     const body = await (await fetch("/talk/test/session", {method:"POST"})).json();
     if (!body.ok) throw new Error(body.error);
@@ -97,6 +104,10 @@ Bun.serve({ port: 3000, async fetch(req) {
     const layout = { caption: `Tapped ✓ (${taps})`, subcaption: `Kin got your tap at ${t()}` };
     if (card) dm.send(edit(appCard(`${BASE}/card/test?v=${version}`, { live: true, layout }), card)).then(() => log("edit() sent")).catch((e) => log("edit FAIL", e?.message));
     return Response.json({ ok: true, taps });
+  }
+  if (req.method === "POST" && u.pathname === "/talk/test/link") {
+    dm.send(`🎙️ Talk to Kin: ${BASE}/talk/test?via=link`).then(() => log("talk link texted")).catch((e) => log("link FAIL", e?.message));
+    return Response.json({ ok: true });
   }
   if (u.pathname === "/health") return new Response("ok");
   return new Response("not found", { status: 404 });
