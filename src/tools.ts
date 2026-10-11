@@ -17,9 +17,11 @@ export function talkVariables(cardId: string): Record<string, string> {
   const type = c?.row.type;
   const reason = type === "reminder" ? "reminder" : type === "protect" ? "safety" : "message";
   const person = d?.meta?.personId ? personById(d.meta.personId) : null;
-  const fromName = reason === "safety" ? "someone she doesn't know" : person?.name ?? d?.title ?? "";
-  const relation = person?.relation ?? (reason === "message" ? (d?.subtitle ?? "").replace(/^your /, "") : "");
-  const opening = reason === "reminder" ? `${fromName || "Your family"} asked me to remind you about something. Shall I read it?`
+  const today = !!d?.meta?.today; // ☀️ morning card: no sender
+  const fromName = today ? "" : reason === "safety" ? "someone she doesn't know" : person?.name ?? d?.title ?? "";
+  const relation = today ? "" : person?.relation ?? (reason === "message" ? (d?.subtitle ?? "").replace(/^your /, "") : "");
+  const opening = today ? "Good morning. Shall I read you what's happening today?"
+    : reason === "reminder" ? `${fromName || "Your family"} asked me to remind you about something. Shall I read it?`
     : reason === "safety" ? "You're safe. A message came from someone I don't know. Can I tell you about it?"
     : relation ? `${fromName}, your ${relation}, sent you a message. Would you like me to read it?`
     : `I'm here to help with your card about ${fromName || "your family"}. Shall we look at it?`;

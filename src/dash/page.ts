@@ -624,7 +624,7 @@ function post(url) {
   return fetch(url, { method: "POST" }).then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
 }
 function wireButtons() {
-  const reset = $("b-reset"), rem = $("b-reminder");
+  const reset = $("b-reset"), rem = $("b-reminder"), today = $("b-today");
   reset.onclick = () => {
     if (!confirm("Reset the demo? This re-seeds the family and clears cards, reminders and memories.")) return;
     reset.disabled = true;
@@ -640,6 +640,13 @@ function wireButtons() {
       .then(() => addLog({ at: new Date().toISOString(), level: "info", text: "Test reminder from Priya: due in 15 s" }))
       .catch((err) => addLog({ at: new Date().toISOString(), level: "error", text: "Test reminder failed: " + err.message }))
       .finally(() => { setTimeout(() => { rem.disabled = false; }, 3000); });
+  };
+  today.onclick = () => {
+    today.disabled = true;
+    post("/dash/today")
+      .then(() => addLog({ at: new Date().toISOString(), level: "info", text: "Sent the ☀️ Today card" }))
+      .catch((err) => addLog({ at: new Date().toISOString(), level: "error", text: "Today card failed: " + err.message }))
+      .finally(() => { setTimeout(() => { today.disabled = false; }, 3000); });
   };
 }
 function startLive() {
@@ -722,6 +729,7 @@ export function renderDashboard(opts: DashOptions = {}): string {
     '    <span id="h-tunnel" class="pill">Tunnel <span class="v">…</span></span>\n' +
     '    <span id="h-gemini" class="pill">Gemini <span class="v">–</span></span>\n' +
     '    <button id="b-reminder" class="dbtn" type="button">▶ Test reminder</button>\n' +
+    '    <button id="b-today" class="dbtn" type="button">☀️ Today card</button>\n' +
     '    <button id="b-reset" class="dbtn reset" type="button">↺ Reset demo</button>\n' +
     '    <span id="clock" class="clock"></span>\n' +
     "  </div>\n</header>\n" +

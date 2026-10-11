@@ -40,7 +40,8 @@ function utilRow(v: CardView, extra: string[] = []): string {
 export function renderCard(v: CardView): string {
   const th = THEME[v.type] ?? THEME.context;
   const replies = v.buttons.filter((b) => b.action === "reply");
-  const others = v.buttons.filter((b) => b.action !== "reply");
+  const know = v.buttons.find((b) => b.action === "know"); // "I know Priya" lives on the reply screen only
+  const others = v.buttons.filter((b) => b.action !== "reply" && b.action !== "know");
   const first = v.title.split(" ")[0];
   const glyph = v.state === "done" || v.state === "replied" || v.state === "confirmed_safe" ? "✅" : v.type === "protect" ? "🛡️" : v.type === "reminder" ? "💊" : "💬";
 
@@ -82,7 +83,7 @@ export function renderCard(v: CardView): string {
   const replyScreen = replies.length && !v.status ? `<section id="reply" class="screen" hidden>
   <header>${avatar(v, 40)}<div class="who"><h1 class="sm">Reply to ${e(first)}</h1><h2>Tap one to send it</h2></div></header>
   <div class="replies">${replies.slice(0, 3).map((b) => `<button class="p green r" data-act="reply" data-payload="${e(JSON.stringify(b.payload ?? {}))}">${e(b.label)}</button>`).join("")}</div>
-  <button class="back" data-screen="main">← Back</button>
+  <div class="brow"><button class="back" data-screen="main">← Back</button>${know ? `<button class="back know" data-act="know" data-payload="${e(JSON.stringify(know.payload ?? {}))}">${e(know.label)}</button>` : ""}</div>
 </section>` : "";
 
   const compact = `<div id="compact">${avatar(v, 40)}<div class="ct">${e(v.title)}</div><div class="cg">${glyph}</div></div>`;
@@ -113,7 +114,7 @@ h2{font-size:15px;font-weight:600;margin-top:2px;color:#123a5e}
 .body>*{flex-shrink:0}
 .line{font-size:16px;font-weight:700;line-height:1.22;color:${th.accent};display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .explain{font-size:15px;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.quote{font-size:15px;line-height:1.25;background:#eef7fd;border:1px solid #cfe6f5;border-radius:12px;padding:5px 9px;
+.quote{font-size:15px;line-height:1.25;max-height:calc(2.5em + 12px);background:#eef7fd;border:1px solid #cfe6f5;border-radius:12px;padding:5px 9px;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .quote b{color:#123a5e}
 .big{font-size:22px;font-weight:800;line-height:1.2;text-align:center;padding:10px 8px;border-radius:14px;background:#effbef;border:1px solid #bfe8c1;color:#0f4d1d}
@@ -134,7 +135,9 @@ button{font-family:inherit;border:0;cursor:pointer;-webkit-tap-highlight-color:t
 .u span{font-size:15px}
 .replies{flex:1;padding:8px 12px 0;display:flex;flex-direction:column;gap:7px;justify-content:center}
 .r{min-height:44px;font-size:17px}
-.back{margin:6px 12px 9px;min-height:36px;border-radius:12px;font-size:16px;font-weight:700;color:#0b2a4a;background:#eef6fb;border:1px solid #c9e2f2}
+.brow{display:flex;gap:6px;margin:6px 12px 9px}
+.back{flex:1;min-width:0;min-height:36px;border-radius:12px;font-size:16px;font-weight:700;color:#0b2a4a;background:#eef6fb;border:1px solid #c9e2f2}
+.back.know{flex:1.6;font-size:15px;padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 button:disabled{opacity:.55}
 #toast{position:absolute;left:10px;right:10px;bottom:10px;z-index:9;display:none;text-align:center;font-size:17px;font-weight:800;padding:12px;border-radius:14px;
   background:#0b2a4a;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.25)}

@@ -3,6 +3,7 @@ import { existsSync } from "fs";
 import { config } from "./config";
 import { caregiver, db, graph, personById } from "./db";
 import { createReminder } from "./reminders";
+import { sendTodayCard } from "./today";
 import { log, subscribe, recentEvents, emit, type DashEvent } from "./events";
 import { checkToken, getCard, renderCardHtml, cardToken } from "./cards/service";
 import { renderTalk } from "./cards/talk";
@@ -108,6 +109,11 @@ export function startServer(opts: { health: () => { local: boolean; cloud: boole
             db.query("UPDATE reminder SET due_at = ? WHERE id = ?").run(due, r.id);
             log.info(`dashboard: test reminder ${r.id} from ${priya.name}, due in 15 s`);
             return Response.json({ ok: true, id: r.id, due });
+          }
+          if (p === "/dash/today" && req.method === "POST") {
+            const c = await sendTodayCard();
+            log.info(`dashboard: ☀️ Today card ${c.id}${c.sent ? "" : " (not sent)"}`);
+            return Response.json({ ok: true, id: c.id, sent: c.sent });
           }
           if (p === "/dash/events") {
             let unsub = () => {};

@@ -9,6 +9,7 @@ import { createSpectrumTransport, createFakeTransport, type Transport } from "./
 import { setCardTransport } from "./cards/service";
 import { setTransport } from "./kin";
 import { setReminderTransport, startReminderLoop } from "./reminders";
+import { startTodayLoop } from "./today";
 import { setVoiceTransport } from "./voice";
 import { startServer, startHealthTicker } from "./server";
 import { runRouter } from "./router";
@@ -32,7 +33,16 @@ setCardTransport(T); setTransport(T); setReminderTransport(T); setVoiceTransport
 
 startServer({ health: () => T.health(), onReset: () => { seed(); log.info("demo reset: re-seeded family"); } });
 ensureAgentSynced().catch((e) => log.error("agent sync failed", e));
+// Quick tunnels get a new address on restart: card links signed with the old base no longer open.
+try {
+  const prevBase = kvGet("cards_base");
+  if (config.publicBase && prevBase !== config.publicBase) {
+    if (prevBase) log.warn("Tunnel address changed — cards sent before now won't open; send fresh cards.");
+    kvSet("cards_base", config.publicBase);
+  }
+} catch (e) { log.error("cards_base check", e); }
 startReminderLoop();
+startTodayLoop();
 startHealthTicker(() => T.health());
 setInterval(() => { const n = maxRow(); if (n) kvSet("local_rowid", String(n)); }, 5000);
 

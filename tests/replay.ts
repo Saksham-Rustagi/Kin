@@ -38,7 +38,14 @@ const d1 = JSON.parse(c1.data);
 console.log("   line:", d1.line, "| summary:", d1.summary, "| replies:", d1.buttons.map((b: any) => b.label));
 check("memory line present + verified", !!d1.line && !/remember|\?/i.test(d1.line));
 check("R3 explains Biscuit", /Biscuit is Raj's dog/.test(d1.summary ?? ""));
-check("≤3 replies", d1.buttons.length > 0 && d1.buttons.length <= 3);
+const replies1 = d1.buttons.filter((b: any) => b.action === "reply");
+check("≤3 replies", replies1.length > 0 && replies1.length <= 3);
+const knowBtn = d1.buttons.find((b: any) => b.action === "know");
+check("'I know Priya' button offered", knowBtn?.label === "👍 I know Priya" && knowBtn.payload?.personId === "priya");
+const { renderCardHtml } = await import("../src/cards/service");
+const html1 = renderCardHtml(c1.id) ?? "";
+const mainHtml = html1.slice(html1.indexOf('id="main"'), html1.indexOf('id="reply"'));
+check("know button on the reply screen only", html1.indexOf('data-act="know"') > html1.indexOf('id="reply"') && !mainHtml.includes('data-act="know"'));
 
 // 2. Tap a reply → sent AS Asha to Priya, card edited
 n = T.sent.length;
@@ -48,6 +55,26 @@ check("sent as Asha to Priya", T.sent.slice(n).some((s) => s.kind === "as_asha" 
 check("card edited to replied", T.sent.slice(n).some((s) => s.kind === "edit") && getCard(c1.id)!.row.state === "replied");
 const again = await kin.onCardAction(c1.id, "reply", d1.buttons[0].payload);
 check("second tap is idempotent (no second send)", again.ok && T.sent.filter((s) => s.kind === "as_asha").length === 1);
+
+// 2b. "I know Priya" (Q1): suppresses only R1; a question still makes a card
+n = T.sent.length;
+const k1 = await kin.onCardAction(c1.id, "know", knowBtn?.payload ?? {});
+check("know tap ok + toast", k1.ok && k1.toast === "Okay. I'll only step in for Priya when it helps.", k1.toast);
+check("known_by_asha set", personByHandle("+15555550100")!.known_by_asha === 1);
+const editsAfterKnow = T.sent.length;
+const k2 = await kin.onCardAction(c1.id, "know", knowBtn?.payload ?? {});
+check("know is idempotent", k2.ok && T.sent.length === editsAfterKnow);
+const twelveDaysAgo = () => db.query("UPDATE person SET last_contact_at = ? WHERE id = 'priya'").run(new Date(Date.now() - 12 * 86400_000).toISOString());
+twelveDaysAgo();
+n = T.sent.length;
+await kin.onFamilyToAsha(personByHandle("+15555550100")!, turn("+15555550100", "Just got back from a long walk this afternoon, the weather was lovely"));
+check("Q1 after know: 12-day gap, no mentions → quiet", !T.sent.slice(n).some((s) => s.kind === "card"));
+twelveDaysAgo();
+n = T.sent.length;
+await kin.onFamilyToAsha(personByHandle("+15555550100")!, turn("+15555550100", "What time should I call you tomorrow?"));
+check("Q1 after know: a question still makes a card", T.sent.slice(n).some((s) => s.kind === "card" && s.to === "+15555550199"));
+const cq = JSON.parse((db.query("SELECT data FROM card WHERE type='context' ORDER BY created_at DESC LIMIT 1").get() as any).data);
+check("no know button once she knows them", !cq.buttons.some((b: any) => b.action === "know"));
 
 // 3. Trivial → quiet (Q2)
 n = T.sent.length;
@@ -111,6 +138,18 @@ check("nothing sent as Asha before her tap", T.sent.filter((s) => s.kind === "as
 if (vc) { await kin.onCardAction(vc.id, "send_voice_reply", vd.buttons[0].payload); await kin.onCardAction(vc.id, "send_voice_reply", vd.buttons[0].payload); }
 const voiceSends = T.sent.slice(n).filter((s) => s.kind === "as_asha");
 check("tap → exactly one as_asha message to Priya", voiceSends.length === 1 && voiceSends[0].to === "+15555550100", voiceSends[0]?.text);
+
+// 9. ☀️ Morning Today card: today's reminders + events in the next 7 days, from code only
+const tomorrow = new Date(Date.now() + 86400_000).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+db.query("INSERT INTO memory (id, about, text, happened_on, added_by, source, created_at) VALUES ('m_visit','raj','Raj is visiting from Austin',?,'priya','family_to_kin',?)").run(tomorrow, new Date().toISOString());
+const { sendTodayCard } = await import("../src/today");
+n = T.sent.length;
+const tc = await sendTodayCard();
+const td = getCard(tc.id)!.data;
+console.log("   today:", td.title, "|", td.subtitle, "|", td.line, "|", td.summary);
+check("Today card sent to Asha", T.sent.slice(n).some((s) => s.kind === "card" && s.to === "+15555550199") && td.title === "Good morning, Asha" && td.emoji === "☀️");
+check("Today card lists today's reminder", /^\d{1,2}:\d{2} [AP]M · .*\(from Priya\)/.test(td.line ?? ""), td.line ?? "");
+check("Today card lists tomorrow's visit", td.meta.items.includes("Tomorrow · Raj is visiting from Austin") && td.summary === td.meta.items[1] && td.buttons.length === 0 && !!td.readAloud && !!td.talk, JSON.stringify(td.meta.items));
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

@@ -97,7 +97,7 @@ Fill the schema:
     quote: turn.texts.join("\n").trim() || (photo ? null : text),
     summary,
     status: null,
-    buttons: replies.map((r) => btn(r, "reply", { text: r }, "green")),
+    buttons: [...replies.map((r) => btn(r, "reply", { text: r }, "green")), ...(person.known_by_asha ? [] : [btn(`👍 I know ${person.name.split(" ")[0]}`, "know", { personId: person.id }, "plain")])],
     readAloud: true,
     talk: true,
     to: config.ashaHandle,
@@ -210,6 +210,18 @@ export async function onCardAction(cardId: string, action: string, payload: any)
     return { ok: true, toast: `Sent to ${person.name} ✓` };
   }
 
+  // Q1: "I know Priya" — only suppresses R1 (long gap); mentions, long messages, questions and stress still make cards.
+  if (action === "know" && row.type === "context") {
+    const person = personById(data.meta.personId);
+    if (!person) return { ok: false };
+    const toast = `Okay. I'll only step in for ${person.name} when it helps.`;
+    if (person.known_by_asha) return { ok: true, toast }; // idempotent
+    db.query("UPDATE person SET known_by_asha = 1 WHERE id = ?").run(person.id);
+    await updateCard(cardId, row.state, { buttons: data.buttons.filter((b) => b.action !== "know") });
+    decision({ from: config.ashaName, preview: `I know ${person.name}`, rules: ["Q1 she knows them", "her tap"], action: "quiet", cardId, highlight: [person.id] });
+    return { ok: true, toast };
+  }
+
   if (action === "readaloud") {
     void readAloud(cardId);
     return { ok: true, toast: "I'm sending you a voice message 🔊" };
@@ -298,7 +310,7 @@ export async function onAshaToKin(c: { type: string; text?: string; emoji?: stri
   const digit = text.match(/^[123]$/);
   if (digit) {
     const last = latestCard("context");
-    const b = last?.data.buttons[Number(digit[0]) - 1];
+    const b = last?.data.buttons.filter((x) => x.action === "reply")[Number(digit[0]) - 1];
     if (last && b) return void onCardAction(last.row.id, b.action, b.payload);
   }
   await outOfScope();

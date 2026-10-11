@@ -40,7 +40,7 @@ const c1 = lastCard("context");
 console.log("   rules:", c1?.data.meta.rules, "| line:", c1?.data.line, "| replies:", c1?.data.buttons.map((b: any) => b.label));
 check("R1 context card sent to Asha", T.sent.slice(n).some((s) => s.kind === "card" && s.to === ASHA) && !!c1);
 check("rules-only fallback noted", !!c1?.data.meta.rules.includes("fallback: rules only"));
-check("canned replies", JSON.stringify(c1?.data.buttons.map((b: any) => b.label)) === JSON.stringify(["❤️ Thank you!", "Sounds good", "Call me soon"]));
+check("canned replies", JSON.stringify(c1?.data.buttons.filter((b: any) => b.action === "reply").map((b: any) => b.label)) === JSON.stringify(["❤️ Thank you!", "Sounds good", "Call me soon"]));
 check("no memory line (never invented)", c1?.data.line === null && c1?.data.meta.memoryId === null);
 check("nothing sent as Asha without a tap", !T.sent.some((s) => s.kind === "as_asha"));
 
