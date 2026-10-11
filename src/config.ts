@@ -65,9 +65,9 @@ export function isAsha(h: string): boolean {
   return n === config.ashaHandle || config.ashaAliases.includes(n);
 }
 
-/** Scale a duration in minutes for the demo clock. */
+/** Scale a duration in minutes for the demo clock (default: 1 minute → 2 s, so the T+30 nudge comes after 60 s). */
 export function minutes(n: number): number {
-  return config.fastClock ? n * 1000 : n * 60_000;
+  return config.fastClock ? n * Number(process.env.DEMO_MINUTE_MS || 2000) : n * 60_000;
 }
 
 export function mask(h: string): string {
