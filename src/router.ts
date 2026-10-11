@@ -3,7 +3,8 @@ import type { Message, Space } from "spectrum-ts";
 import { config, isAllowedLocalSender, isAsha, isKinLine, mask, normalizeHandle } from "./config";
 import { personByHandle, seenMessage } from "./db";
 import { log } from "./events";
-import { onFamilyToAsha, onUnknownToAsha, onAshaToKin, onFamilyToKin, type Turn } from "./kin";
+import { onFamilyToAsha, onUnknownToAsha, onAshaToKin, onFamilyToKin, onFamilyPhotoToKin, onAshaVoiceToKin, type Turn } from "./kin";
+import { isAudio, isImage, type InPhoto } from "./photos";
 import type { Transport } from "./transport";
 
 const seen = new Set<string>();
@@ -27,7 +28,7 @@ function flush(key: string) {
   p.catch((e) => log.error("turn handler failed", e));
 }
 
-function buffer(from: string, chatId: string | null, isGroup: boolean, id: string, text: string, att?: { name: string; mimeType: string }) {
+function buffer(from: string, chatId: string | null, isGroup: boolean, id: string, text: string, att?: Turn["attachments"][number]) {
   const key = `${from}|${chatId ?? ""}`;
   let b = buffers.get(key);
   if (!b) {
@@ -57,15 +58,19 @@ export async function route(space: Space | null, message: Message) {
     if (isGroup) { log.info(`group message from ${mask(from)}: G1 group mode not enabled in v1`); return; }
     const c = c0.type === "reply" ? c0.content : c0;
     if (c.type === "text") buffer(from, space?.id ?? null, false, message.id, c.text);
-    else if (c.type === "attachment" || c.type === "voice") buffer(from, space?.id ?? null, false, message.id, "", { name: c.name ?? "file", mimeType: c.mimeType ?? "" });
+    // Keep a read() handle so onFamilyToAsha can look at photos (throws if not downloaded to the Mac; handled there).
+    else if (c.type === "attachment" || c.type === "voice") buffer(from, space?.id ?? null, false, message.id, "", { name: c.name ?? "file", mimeType: c.mimeType ?? "", read: typeof c.read === "function" ? () => c.read() : undefined });
     return;
   }
 
   if (message.platform === "imessage") {
+    const unwrap = (c: any): any[] => c.type === "group" ? c.items.flatMap(unwrap) : c.type === "reply" ? unwrap(c.content) : [c];
+    const items = unwrap(c0);
     const handle = async (c: any): Promise<void> => {
-      if (c.type === "group") { for (const it of c.items) await handle(it); return; }
-      if (c.type === "reply") return handle(c.content);
       if (isAsha(from)) {
+        if (c.type === "voice" || (c.type === "attachment" && isAudio(c.mimeType, c.name))) {
+          return onAshaVoiceToKin(await c.read(), c.mimeType ?? "audio/x-caf", message.id);
+        }
         return onAshaToKin({ type: c.type, text: c.text, emoji: c.emoji, targetId: c.target?.id });
       }
       const person = personByHandle(from);
@@ -73,7 +78,22 @@ export async function route(space: Space | null, message: Message) {
       if (c.type === "text") return onFamilyToKin(person, from, c.text, message.id);
       log.info(`cloud ${c.type} from ${person.name} (not handled yet)`);
     };
-    handle(c0).catch((e) => log.error("cloud handler failed", e));
+    const run = async () => {
+      // Family photo(s), alone or grouped with a caption → ONE photo-memory call.
+      const person = isAsha(from) ? null : personByHandle(from);
+      const imgs = items.filter((c) => c.type === "attachment" && isImage(c.mimeType, c.name));
+      if (person && imgs.length) {
+        const caption = items.filter((c) => c.type === "text").map((c) => c.text).join("\n");
+        const photos: InPhoto[] = [];
+        for (const c of imgs) {
+          try { photos.push({ bytes: await c.read(), mimeType: c.mimeType ?? "", name: c.name ?? "photo" }); }
+          catch (e) { log.warn(`photo from ${person.name} unreadable: ${(e as any)?.message ?? e}`); }
+        }
+        return onFamilyPhotoToKin(person, from, photos, caption, message.id);
+      }
+      for (const it of items) await handle(it);
+    };
+    run().catch((e) => log.error("cloud handler failed", e));
   }
 }
 

@@ -104,11 +104,18 @@ export function addEdge(srcName: string, rel: string, dstName: string, label: st
   if (res.changes) emit({ kind: "graph", op: "add_link", link: { source: src, target: dst, rel: label || r } });
 }
 
-export function saveMemory(aboutName: string, text: string, happenedOn: string | null, addedBy: string, source: "family_to_kin" | "family_thread" | "asha", sourceMsg: string | null, kindHint = "thing"): Memory {
+export function saveMemory(aboutName: string, text: string, happenedOn: string | null, addedBy: string, source: "family_to_kin" | "family_thread" | "asha", sourceMsg: string | null, kindHint = "thing", photo: string | null = null): Memory {
   const [about] = resolveNode(aboutName, kindHint, addedBy);
-  const m = addMemory({ about, text: text.slice(0, 160), happened_on: validDate(happenedOn), photo: null, added_by: addedBy, source, source_msg: sourceMsg });
+  const m = addMemory({ about, text: text.slice(0, 160), happened_on: validDate(happenedOn), photo, added_by: addedBy, source, source_msg: sourceMsg });
   emit({ kind: "graph", op: "highlight", ids: [about] });
   return m;
+}
+
+/** Card photo for a person: their profile photo, else the newest photo memory about them. "/media/<file>" or null. */
+export function photoFor(p: Person): string | null {
+  if (p.photo) return `/media/${p.photo}`;
+  const m = db.query("SELECT photo FROM memory WHERE deleted = 0 AND about = ? AND photo IS NOT NULL ORDER BY created_at DESC LIMIT 1").get(p.id) as { photo: string } | null;
+  return m ? `/media/${m.photo}` : null;
 }
 
 function validDate(d: string | null): string | null {

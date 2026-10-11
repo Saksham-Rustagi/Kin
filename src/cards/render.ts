@@ -64,8 +64,9 @@ export function renderCard(v: CardView): string {
       if (done) actions += `<button class="p green" data-act="done">✅ Done</button>`;
       actions += utilRow(v, later ? [`<button class="u" data-act="snooze">⏰<span>Later</span></button>`] : []).replace(`data-talk="1">🎙️<span>Talk to Kin</span>`, `data-talk="1">🎙️<span>Talk</span>`);
     } else {
-      for (const b of others.slice(0, 1)) actions += `<button class="p ${b.style === "green" ? "green" : "blue"}" data-act="${e(b.action)}" data-payload="${e(JSON.stringify(b.payload ?? {}))}">${e(b.label)}</button>`;
-      actions += utilRow(v);
+      const cancel = others.find((b) => b.action === "cancel");
+      for (const b of others.filter((b) => b !== cancel).slice(0, 1)) actions += `<button class="p ${b.style === "green" ? "green" : "blue"}" data-act="${e(b.action)}" data-payload="${e(JSON.stringify(b.payload ?? {}))}">${e(b.label)}</button>`;
+      actions += utilRow(v, cancel ? [`<button class="u" data-act="cancel">${e(cancel.label)}</button>`] : []);
     }
   } else {
     actions += utilRow(v);

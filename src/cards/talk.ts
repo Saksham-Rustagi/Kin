@@ -37,7 +37,7 @@ talk.onclick=async()=>{
     conv=await Conversation.startSession({conversationToken:body.conversationToken,connectionType:"webrtc",dynamicVariables:body.dynamicVariables,
       onConnect:()=>{diag("connected");talk.className="orb live";talk.textContent="Listening";end.style.display="inline-block";s.textContent="You're talking to Kin."},
       onModeChange:({mode})=>{talk.classList.toggle("speaking",mode==="speaking");talk.textContent=mode==="speaking"?"Kin":"Listening"},
-      onDisconnect:()=>{diag("disconnect");talk.className="orb";talk.textContent="Done";end.style.display="none";s.textContent="Talk ended. Tap Back to see your card."},
+      onDisconnect:()=>{diag("disconnect");fetch("/talk/"+id+"/end?t="+t,{method:"POST"}).catch(()=>{});talk.className="orb";talk.textContent="Done";end.style.display="none";s.textContent="Talk ended. Tap Back to see your card."},
       onError:(e)=>{diag("error",{e:String(e?.message??e)});s.textContent="Connection problem. Try Open in Safari."}});
   }catch(err){diag("fail",{name:err?.name,msg:String(err?.message??err)});conv=null;talk.disabled=false;
     s.textContent=(err?.name==="NotAllowedError"?"Kin needs the microphone. ":"Couldn't connect. ")+"Try Open in Safari.";}

@@ -82,5 +82,35 @@ n = T.sent.length;
 if (rem?.card_id) await kin.onCardAction(rem.card_id, "done", {});
 check("done → Priya notified", T.sent.slice(n).some((s) => s.kind === "text" && s.to === "+15555550100" && /✅/.test(s.text ?? "")));
 
+// 7. Family → Kin photo memory (Gemini vision; a stock image stands in for a family photo)
+const { readFileSync, existsSync } = await import("fs");
+n = T.sent.length;
+await kin.onFamilyPhotoToKin(priya, "+15555550100", [{ bytes: readFileSync("/Library/User Pictures/Animals/Parrot.heic"), mimeType: "image/heic", name: "IMG_0001.heic" }], "This is Biscuit at the park last Sunday", crypto.randomUUID());
+const pm = db.query("SELECT * FROM memory WHERE photo IS NOT NULL ORDER BY created_at DESC LIMIT 1").get() as any;
+console.log("   photo memory:", pm?.about, "|", pm?.text, "|", pm?.photo, "|", pm?.happened_on);
+check("photo memory saved with photo", !!pm?.photo && pm.about === "biscuit");
+check("JPEG written to data/media", !!pm?.photo && pm.photo.endsWith(".jpg") && existsSync(`data/media/${pm.photo}`));
+const photoConf = T.sent.slice(n).find((s) => s.kind === "text" && s.to === "+15555550100");
+console.log("   photo confirmation:", photoConf?.text);
+check("photo confirmation sent to Priya", !!photoConf?.text);
+const { graph } = await import("../src/db");
+check("map node for Biscuit has the photo", graph().nodes.some((nd: any) => nd.id === "biscuit" && nd.photo === `/media/${pm?.photo}`));
+
+// 8. Asha's voice note → "Send to Priya?" card; nothing sent as her until she taps
+const { execFileSync } = await import("child_process");
+execFileSync("say", ["-o", "/tmp/kin_voice.aiff", "Tell Priya I can't wait to see her"]);
+execFileSync("afconvert", ["-f", "WAVE", "-d", "LEI16@16000", "/tmp/kin_voice.aiff", "/tmp/kin_voice.wav"]);
+n = T.sent.length;
+const asAshaBefore = T.sent.filter((s) => s.kind === "as_asha").length;
+await kin.onAshaVoiceToKin(readFileSync("/tmp/kin_voice.wav"), "audio/wav", crypto.randomUUID());
+const vc = db.query("SELECT * FROM card WHERE type = 'info' ORDER BY created_at DESC LIMIT 1").get() as any;
+const vd = vc ? JSON.parse(vc.data) : null;
+console.log("   voice card:", vd?.title, "|", vd?.line);
+check("voice → confirmation card to Asha", !!vd?.meta?.voiceReply && vd.meta.personId === "priya" && T.sent.slice(n).some((s) => s.kind === "card" && s.to === "+15555550199"));
+check("nothing sent as Asha before her tap", T.sent.filter((s) => s.kind === "as_asha").length === asAshaBefore);
+if (vc) { await kin.onCardAction(vc.id, "send_voice_reply", vd.buttons[0].payload); await kin.onCardAction(vc.id, "send_voice_reply", vd.buttons[0].payload); }
+const voiceSends = T.sent.slice(n).filter((s) => s.kind === "as_asha");
+check("tap → exactly one as_asha message to Priya", voiceSends.length === 1 && voiceSends[0].to === "+15555550100", voiceSends[0]?.text);
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

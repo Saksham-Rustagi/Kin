@@ -9,6 +9,7 @@ import { renderDashboard } from "./dash/page";
 import { onCardAction } from "./kin";
 import { geminiUsed } from "./ai/gemini";
 import { cardAudio } from "./voice";
+import { talkVariables, handleTool, onTalkEnded } from "./tools";
 
 const html = (b: string, status = 200) => new Response(b, { status, headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
 const isLocal = (req: Request) => !req.headers.get("cf-connecting-ip") && !req.headers.get("x-forwarded-for");
@@ -61,22 +62,22 @@ export function startServer(opts: { health: () => { local: boolean; cloud: boole
         m = p.match(/^\/talk\/([\w-]+)\/session$/);
         if (m && req.method === "POST") {
           if (!checkToken(m[1], u.searchParams.get("t"))) return Response.json({ ok: false }, { status: 403 });
-          const c = getCard(m[1]);
           const r = await fetch(`https://api.elevenlabs.io/v1/convai/conversation/token?agent_id=${config.elevenAgent}`, { headers: { "xi-api-key": config.elevenKey } });
           const j: any = await r.json();
           log.info(`talk to Kin: session for card ${m[1]} (token ${r.status})`);
-          const d = c?.data;
-          const dynamicVariables = {
-            asha_name: config.ashaName,
-            reason: c?.row.type === "reminder" ? "reminder" : c?.row.type === "protect" ? "safety" : "message",
-            from_name: d?.title ?? "",
-            relation: (d?.subtitle ?? "").replace(/^your /, ""),
-            message_text: d?.quote ?? "",
-            reminder_text: c?.row.type === "reminder" ? d?.line ?? "" : "",
-            reply_options: (d?.buttons ?? []).filter((b) => b.action === "reply").map((b) => b.label).join(" | "),
-            memory_line: d?.line ?? "",
-          };
-          return Response.json(r.ok ? { ok: true, conversationToken: j.token, dynamicVariables } : { ok: false, error: `token ${r.status}` });
+          return Response.json(r.ok ? { ok: true, conversationToken: j.token, dynamicVariables: talkVariables(m[1]) } : { ok: false, error: `token ${r.status}` });
+        }
+        m = p.match(/^\/talk\/([\w-]+)\/end$/);
+        if (m && req.method === "POST") {
+          if (!checkToken(m[1], u.searchParams.get("t"))) return Response.json({ ok: false }, { status: 403 });
+          return Response.json({ ok: await onTalkEnded(m[1]) });
+        }
+        // ---------- Talk to Kin webhook tools (called by the ElevenLabs agent, X-Kin-Secret) ----------
+        m = p.match(/^\/tools\/(send_reply|ask_family_to_call|mark_reminder_done)$/);
+        if (m && req.method === "POST") {
+          const args: any = await req.json().catch(() => ({}));
+          const r = await handleTool(m[1], req.headers.get("x-kin-secret"), args);
+          return Response.json(r.body, { status: r.status });
         }
         if (p === "/diag" && req.method === "POST") {
           const d: any = await req.json().catch(() => ({}));

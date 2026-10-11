@@ -12,6 +12,7 @@ import { setReminderTransport, startReminderLoop } from "./reminders";
 import { setVoiceTransport } from "./voice";
 import { startServer, startHealthTicker } from "./server";
 import { runRouter } from "./router";
+import { ensureAgentSynced } from "./agent";
 
 if (!(db.query("SELECT COUNT(*) AS n FROM person").get() as { n: number }).n) { seed(); log.info("seeded demo family"); }
 
@@ -30,6 +31,7 @@ const T: Transport = fake ? createFakeTransport() : await createSpectrumTranspor
 setCardTransport(T); setTransport(T); setReminderTransport(T); setVoiceTransport(T);
 
 startServer({ health: () => T.health(), onReset: () => { seed(); log.info("demo reset: re-seeded family"); } });
+ensureAgentSynced().catch((e) => log.error("agent sync failed", e));
 startReminderLoop();
 startHealthTicker(() => T.health());
 setInterval(() => { const n = maxRow(); if (n) kvSet("local_rowid", String(n)); }, 5000);

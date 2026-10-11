@@ -66,6 +66,7 @@ export type AssessCompose = {
   mentions: { name: string; kind: string }[];
   scam: { score: number; signals: string[]; claimsToBe: string | null };
   summary: string | null; memory_id: string | null; memory_line: string | null; replies: string[]; calm_note: string | null;
+  photo_caption?: string | null;
 };
 export const assessSchema = S("OBJECT", {
   properties: {
@@ -77,6 +78,7 @@ export const assessSchema = S("OBJECT", {
     memory_line: S("STRING", { nullable: true }),
     replies: S("ARRAY", { items: S("STRING") }),
     calm_note: S("STRING", { nullable: true }),
+    photo_caption: S("STRING", { nullable: true }),
   },
   required: ["isTrivial", "questionForAsha", "isStressful", "needsSummary", "mentions", "scam", "memory_id", "memory_line", "replies"],
 });
@@ -111,3 +113,32 @@ export const threadSchema = S("OBJECT", {
 });
 
 export const captionSchema = S("OBJECT", { properties: { caption: S("STRING") }, required: ["caption"] });
+
+export type PhotoMemory = {
+  description: string; who_in_photo: string[]; about: string; about_kind: string; memory_text: string;
+  happened_on: string | null; use_as_profile: boolean; confirmation: string;
+};
+export const photoMemorySchema = S("OBJECT", {
+  properties: {
+    description: S("STRING"),
+    who_in_photo: S("ARRAY", { items: S("STRING") }),
+    about: S("STRING"),
+    about_kind: S("STRING", { enum: ["person", "pet", "place", "event", "thing"] }),
+    memory_text: S("STRING"),
+    happened_on: S("STRING", { nullable: true }),
+    use_as_profile: S("BOOLEAN"),
+    confirmation: S("STRING"),
+  },
+  required: ["description", "who_in_photo", "about", "about_kind", "memory_text", "use_as_profile", "confirmation"],
+});
+
+export type VoiceIntent = { transcript: string; intent: "reply" | "question" | "call_me" | "other"; to_person: string | null; text: string };
+export const voiceIntentSchema = S("OBJECT", {
+  properties: {
+    transcript: S("STRING"),
+    intent: S("STRING", { enum: ["reply", "question", "call_me", "other"] }),
+    to_person: S("STRING", { nullable: true }),
+    text: S("STRING"),
+  },
+  required: ["transcript", "intent", "text"],
+});

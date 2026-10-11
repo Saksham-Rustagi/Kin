@@ -1,10 +1,11 @@
 // Kin's brain: what happens for each kind of inbound message, and for each card tap.
 import { config, fmtTime, isAsha, mask, normalizeHandle } from "./config";
 import { db, caregiver, handlesOf, people, personByHandle, personById, personByName, saveMessage, touchContact, newId, nowIso, type Person } from "./db";
-import { decision, emit, log } from "./events";
+import { decision, emit, log, type GraphNode } from "./events";
 import { gen, assessSchema, familySchema, threadSchema, type AssessCompose, type FamilyUnderstanding, type ThreadFacts } from "./ai/gemini";
 import { decideFamily, decideUnknown, defang, looksTrivial } from "./decide";
-import { candidatesFor, explainEntity, unplacedMentions, regexMentions, verifyMemoryLine, knownNamesForPrompt, saveMemory, addEdge, memoriesBy, forgetLast } from "./memory";
+import { candidatesFor, explainEntity, unplacedMentions, regexMentions, verifyMemoryLine, knownNamesForPrompt, saveMemory, addEdge, memoriesBy, forgetLast, photoFor, resolveNode } from "./memory";
+import { isImage, saveImage, toWav, understandPhoto, understandVoice, inlineImage, type InPhoto } from "./photos";
 import { createCard, updateCard, getCard, btn, latestCard, cardBySpectrumId, type CardData } from "./cards/service";
 import type { Transport } from "./transport";
 import { createReminder, markReminderDone, snoozeReminder, reminderByCard } from "./reminders";
@@ -13,7 +14,7 @@ import { readAloud, prefetchAudio } from "./voice";
 let T: Transport;
 export function setTransport(t: Transport) { T = t; }
 
-export type Turn = { from: string; chatId: string | null; isGroup: boolean; texts: string[]; ids: string[]; at: Date; attachments: { name: string; mimeType: string }[] };
+export type Turn = { from: string; chatId: string | null; isGroup: boolean; texts: string[]; ids: string[]; at: Date; attachments: { name: string; mimeType: string; read?: () => Promise<Buffer> }[] };
 
 const call = () => config.ashaCalledBy; // "Nani"
 const today = () => new Date().toLocaleDateString("en-CA", { timeZone: config.tz });
@@ -28,6 +29,14 @@ export async function onFamilyToAsha(person: Person, turn: Turn) {
   const preview = text.slice(0, 120);
   const regexNames = regexMentions(text);
   const cands0 = candidatesFor(person, regexNames);
+
+  // A photo in her thread: convert it and let the same Gemini call caption it (still one call). Skip if not downloaded.
+  let photo: { file: string; jpeg: Buffer } | null = null;
+  const img = turn.attachments.find((a) => a.read && isImage(a.mimeType, a.name));
+  if (img) {
+    try { photo = await saveImage({ bytes: await img.read!(), mimeType: img.mimeType, name: img.name }); }
+    catch (e) { log.warn(`photo from ${person.name} not readable yet (${(e as any)?.message ?? e})`); }
+  }
 
   const prompt = `Today is ${today()}.
 Sender: ${person.name}, ${config.ashaName}'s ${person.relation} (pronoun: ${person.pronoun}).
@@ -44,14 +53,17 @@ Fill the schema:
 - mentions: names of people, pets, places or events that appear in the message (exact words).
 - isTrivial: true only for "ok", "thanks", emoji-only and similar.
 - questionForAsha: true if it asks ${config.ashaName} something.
-- scam.score: 0-100 risk that this is a scam.`;
-  const assess = await gen<AssessCompose>("assess_compose", prompt, assessSchema);
+- scam.score: 0-100 risk that this is a scam.${photo ? `
+- photo_caption: the attached photo was sent with this message. Max 12 words, plain, what is visible. Never identify people from faces; only use names written in the message.` : ""}`;
+  const assess = await gen<AssessCompose>("assess_compose", photo ? [{ text: prompt }, inlineImage(photo.jpeg)] : prompt, assessSchema, photo ? { timeoutMs: 15_000 } : {});
+  const photoLine = photo ? `${person.name} sent a photo${assess?.photo_caption ? `: ${assess.photo_caption.split(/\s+/).slice(0, 12).join(" ")}` : ""}` : null;
   // Only names that literally appear in the message as whole words (Gemini sometimes echoes known names from the prompt).
   const word = (n: string) => new RegExp(`(^|[^\\p{L}])${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^\\p{L}]|$)`, "iu").test(text);
   const mentionNames = [...new Set([...(assess?.mentions.map((m) => m.name) ?? []).filter((n) => n && word(n)), ...regexNames])];
   const unplaced = unplacedMentions(mentionNames, person);
   const words = text.split(/\s+/).filter(Boolean).length;
   const d = decideFamily({ person, text, assess, unplaced: unplaced.map((u) => u.name), wordCount: words });
+  if (photo && d.action === "quiet") { d.action = "card"; d.rules.push("R8 photo"); }
 
   // Memory line: verify Gemini's pick in code; never invent.
   const cands = candidatesFor(person, mentionNames);
@@ -70,17 +82,17 @@ Fill the schema:
 
   let replies = (assess?.replies ?? []).map((r) => r.trim()).filter((r) => r && r.length <= 32 && !/\$|money|gift|code|password/i.test(r)).slice(0, 3);
   if (!assess) replies = CANNED;
-  const summary = assess?.calm_note || (explains.length ? explains[0].text : null) || (assess?.needsSummary || words > 40 ? assess?.summary ?? null : null);
+  const summary = photoLine || assess?.calm_note || (explains.length ? explains[0].text : null) || (assess?.needsSummary || words > 40 ? assess?.summary ?? null : null);
   const line = verified?.line ?? null;
   const handle = normalizeHandle(turn.from);
   const data: CardData = {
     title: person.name,
     subtitle: `your ${person.relation}`,
-    photoUrl: person.photo ? `/media/${person.photo}` : null,
+    photoUrl: photo ? `/media/${photo.file}` : photoFor(person),
     emoji: person.emoji,
     line,
     quoteFrom: `${person.name} wrote:`,
-    quote: text,
+    quote: turn.texts.join("\n").trim() || (photo ? null : text),
     summary,
     status: null,
     buttons: replies.map((r) => btn(r, "reply", { text: r }, "green")),
@@ -219,6 +231,35 @@ export async function onCardAction(cardId: string, action: string, payload: any)
     return { ok: true, toast: `I asked ${cg.name} ✓` };
   }
 
+  // Her voice note → "Send to Priya?" card. Text and recipient come from the stored card (not the tap payload).
+  if (action === "send_voice_reply" && row.type === "info" && data.meta.voiceReply) {
+    if (row.state === "replied") return { ok: true, toast: "Already sent ✓" };
+    if (row.state === "cancelled") return { ok: true, toast: "Okay, I didn't send it." };
+    if (sending.has(cardId)) return { ok: true, toast: "Sending…" };
+    const person = personById(data.meta.personId);
+    const textOut = String(data.meta.text ?? "").slice(0, 120);
+    const handle = person ? handlesOf(person.id)[0] : undefined;
+    if (!person || !textOut || !handle) return { ok: false };
+    sending.add(cardId);
+    try {
+      const ok = await T.sendAsAsha(handle, null, textOut);
+      if (!ok) return { ok: false };
+      saveMessage({ id: newId("out"), via: "local", direction: "out_as_asha", to: handle, text: textOut, card_id: cardId });
+      await updateCard(cardId, "replied", {
+        status: { text: `Sent to ${person.name} ✓ “${textOut}”`, tone: "ok" }, buttons: [],
+        layout: { ...data.layout, subcaption: `Sent to ${person.name} ✓ “${textOut}”` },
+      });
+    } finally { sending.delete(cardId); }
+    decision({ from: config.ashaName, preview: `🎙️ → ${person.name}: ${textOut}`, rules: ["her voice note", "her tap"], action: "reply", cardId, highlight: [person.id] });
+    return { ok: true, toast: `Sent to ${person.name} ✓` };
+  }
+
+  if (action === "cancel") {
+    if (row.state === "replied") return { ok: true, toast: "Already sent ✓" };
+    await updateCard(cardId, "cancelled", { status: { text: "Okay, I didn't send it.", tone: "info" }, buttons: [], layout: { ...data.layout, subcaption: "Not sent" } });
+    return { ok: true, toast: "Okay, I didn't send it." };
+  }
+
   if (action === "done" || action === "snooze") {
     const r = reminderByCard(cardId);
     if (!r) return { ok: false };
@@ -246,14 +287,7 @@ export async function onAshaToKin(c: { type: string; text?: string; emoji?: stri
   const who = text.match(/^who(?:'s| is| was)\s+([A-Za-z][\w' -]{1,30}?)\??$/i);
   if (who) return whoIs(who[1].trim());
   const callMe = text.match(/(?:tell|ask)\s+([A-Za-z]+)\s+to\s+call\s+me/i);
-  if (callMe || /^call me\b/i.test(text)) {
-    const p = (callMe && personByName(callMe[1])) || caregiver();
-    if (!p) return;
-    for (const h of handlesOf(p.id)) await T.sendText(h, `${call()} would like you to call her 💛`);
-    await T.sendText(config.ashaHandle, `I asked ${p.name} to call you 💛`);
-    decision({ from: config.ashaName, preview: text, rules: ["her request"], action: "alert" });
-    return;
-  }
+  if (callMe || /^call me\b/i.test(text)) return askToCall(callMe?.[1] ?? null, text);
   if (/^(done|yes|i did|took it|taken)\b/i.test(text)) {
     const open = db.query("SELECT * FROM reminder WHERE status IN ('due','nudged','escalated') ORDER BY due_at DESC LIMIT 1").get() as any;
     if (open) return void markReminderDone(open.id, "she texted done");
@@ -264,7 +298,107 @@ export async function onAshaToKin(c: { type: string; text?: string; emoji?: stri
     const b = last?.data.buttons[Number(digit[0]) - 1];
     if (last && b) return void onCardAction(last.row.id, b.action, b.payload);
   }
-  await T.sendText(config.ashaHandle, `I can help with your family and messages. For other things, ${caregiver()?.name ?? "your family"} can help 💙`);
+  await outOfScope();
+}
+
+/** "Tell Priya to call me" (typed or spoken): ask that person (default: the caregiver) to call her. */
+async function askToCall(name: string | null, preview: string) {
+  const p = (name && personByName(name)) || caregiver();
+  if (!p) return;
+  for (const h of handlesOf(p.id)) await T.sendText(h, `${call()} would like you to call her 💛`);
+  await T.sendText(config.ashaHandle, `I asked ${p.name} to call you 💛`);
+  decision({ from: config.ashaName, preview, rules: ["her request"], action: "alert" });
+}
+
+const outOfScope = () => T.sendText(config.ashaHandle, `I can help with your family and messages. For other things, ${caregiver()?.name ?? "your family"} can help 💙`);
+const sending = new Set<string>();
+
+// =====================================================================================
+// Asha's voice notes → Kin (cloud): Gemini listens; nothing is sent as her without her tap.
+// =====================================================================================
+export async function onAshaVoiceToKin(bytes: Buffer, mimeType: string, msgId: string) {
+  const t0 = Date.now();
+  const sorry = () => T.sendText(config.ashaHandle, "Sorry, I couldn't hear that one. You can try again, or type it to me 💙");
+  const wav = await toWav(bytes, mimeType);
+  if (!wav) { await sorry(); return; }
+  const fam = people().map((p) => p.name);
+  const v = await understandVoice(wav, fam, config.ashaName);
+  saveMessage({ id: msgId, via: "cloud", direction: "in", from: config.ashaHandle, text: v?.transcript ? `🎙️ ${v.transcript}` : "🎙️ (voice)" });
+  if (!v) { await sorry(); return; }
+  const transcript = (v.transcript ?? "").trim();
+  const p = v.to_person ? personByName(v.to_person) : null;
+
+  if (v.intent === "reply") {
+    const textOut = (v.text ?? "").trim().replace(/^["“]|["”]$/g, "").slice(0, 120);
+    if (!p || !textOut) { await T.sendText(config.ashaHandle, `I heard: “${transcript.slice(0, 100)}”. Who should I send it to? Say their name in your message.`); return; }
+    if (/\$|money|gift ?card|password|\bcode\b|bank|social security|card number/i.test(textOut)) { await outOfScope(); return; }
+    const data: CardData = {
+      title: `Send to ${p.name}?`, subtitle: "your voice message", photoUrl: photoFor(p), emoji: "🎙️",
+      line: `“${textOut}”`, quoteFrom: null, quote: null, summary: null, status: null,
+      buttons: [btn("✅ Send", "send_voice_reply", { personId: p.id, text: textOut }, "green"), btn("✖ Don't send", "cancel", {}, "plain")],
+      readAloud: false, talk: false, to: config.ashaHandle,
+      layout: { caption: `🎙️ Send to ${p.name}?`, subcaption: `“${textOut}”`, summary: `Kin: send this to ${p.name}?` },
+      meta: { voiceReply: true, personId: p.id, text: textOut, voiceMsg: msgId },
+    };
+    const card = await createCard("info", "sent", data);
+    decision({ from: config.ashaName, preview: `🎙️ ${transcript}`, rules: ["her voice note", "waits for her tap"], action: "card", cardId: card.id, ms: Date.now() - t0, highlight: [p.id] });
+    return;
+  }
+  if (v.intent === "call_me") return askToCall(p?.name ?? null, `🎙️ ${transcript}`);
+  if (v.intent === "question") {
+    const who = transcript.match(/who(?:'s| is| was)\s+([A-Za-z][\w' -]{1,30}?)[?.!]*$/i)?.[1] ?? v.to_person ?? (v.text || null);
+    if (who) return whoIs(who.trim());
+  }
+  await outOfScope();
+}
+
+// =====================================================================================
+// Family → Kin photos (cloud): one Gemini call → a photo memory on the map.
+// =====================================================================================
+export async function onFamilyPhotoToKin(person: Person, from: string, photos: InPhoto[], caption: string, msgId: string) {
+  const t0 = Date.now();
+  const reply = (s: string) => T.sendText(from, s);
+  caption = caption.trim();
+  saveMessage({ id: msgId, via: "cloud", direction: "in", from, text: `📸 ${caption}`.trim() });
+  const saved: { file: string; jpeg: Buffer }[] = [];
+  for (const ph of photos.slice(0, 4)) { const s = await saveImage(ph); if (s) saved.push(s); }
+  if (!saved.length) { await reply("Sorry, I couldn't open that photo. Could you send it again?"); return; }
+  const main = saved[0];
+
+  const g = await understandPhoto(main.jpeg, caption, person, knownNamesForPrompt(), today(), config.ashaName, call());
+  // Code verifies names: only names written in the caption (or the sender) may be used. Never from faces.
+  const inCaption = (n: string) => !!n && new RegExp(`(^|[^\\p{L}])${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^\\p{L}]|$)`, "iu").test(caption);
+  const selfRef = (n: string) => /^(i|me|myself)$/i.test(n.trim()) || n.trim().toLowerCase() === person.name.toLowerCase();
+  let about = g?.about?.trim() || person.name;
+  if (selfRef(about) || !inCaption(about)) about = person.name;
+  const who = [...new Set((g?.who_in_photo ?? []).map((n) => n.trim()).filter((n) => inCaption(n) && !selfRef(n) && n.toLowerCase() !== about.toLowerCase()))].slice(0, 4);
+  const memText = g?.memory_text?.trim() || (caption ? `${person.name} shared a photo: ${caption}` : `${person.name} shared a photo`);
+  const aboutKind = personByName(about) ? "person" : g?.about_kind ?? "thing";
+
+  const mem = saveMemory(about, memText, g?.happened_on ?? null, person.id, "family_to_kin", msgId, aboutKind, main.file);
+  for (const s of saved.slice(1)) saveMemory(about, memText, g?.happened_on ?? null, person.id, "family_to_kin", msgId, aboutKind, s.file);
+  for (const n of who) addEdge(n, "pictured_with", about, "in a photo", person.id, "person", aboutKind);
+  const aboutId = mem.about;
+
+  // Profile photo: if they say "this is me / use as my picture", or the photo is about a person who has none yet.
+  const target = personByName(about) ?? (g?.use_as_profile ? person : null);
+  let profile = false;
+  if (target && (g?.use_as_profile || !target.photo)) {
+    db.query("UPDATE person SET photo = ? WHERE id = ?").run(main.file, target.id);
+    profile = true;
+  }
+  // Re-announce the node with its photo so the dashboard map shows it.
+  const ap = personById(aboutId);
+  const ent = db.query("SELECT name, kind FROM entity WHERE id = ?").get(aboutId) as { name: string; kind: GraphNode["kind"] } | null;
+  const count = (db.query("SELECT COUNT(*) AS n FROM memory WHERE deleted = 0 AND about = ?").get(aboutId) as { n: number }).n;
+  const node: GraphNode = aboutId === "asha" ? { id: "asha", label: config.ashaName, kind: "asha", memories: count }
+    : ap ? { id: ap.id, label: ap.name, kind: "person", relation: ap.relation, photo: photoFor(ap), memories: count }
+    : { id: aboutId, label: ent?.name ?? about, kind: ent?.kind ?? "thing", photo: `/media/${main.file}`, memories: count };
+  emit({ kind: "graph", op: "add_node", node });
+  emit({ kind: "graph", op: "highlight", ids: [aboutId, ...who.map((n) => resolveNode(n, "person", person.id)[0])] });
+
+  await reply(g?.confirmation?.trim() || `Got it 📸 I saved this photo${caption ? ` (“${caption.slice(0, 60)}”)` : ""}. I'll show it to ${call()} when it helps.`);
+  decision({ from: person.name, preview: `📸 ${caption || g?.description || "photo"}`, rules: ["M photo memory", ...(who.length ? [`names from caption: ${who.join(", ")}`] : []), ...(profile ? ["profile photo"] : []), ...(g ? [] : ["fallback: no AI"])], action: "memory", memoryId: mem.id, ms: Date.now() - t0, highlight: [aboutId] });
 }
 
 async function whoIs(name: string) {
@@ -274,7 +408,7 @@ async function whoIs(name: string) {
   if (p) {
     const mems = memoriesBy(p.id).filter((m) => m.about === p.id).slice(0, 2);
     const data: CardData = {
-      title: p.name, subtitle: `your ${p.relation}`, photoUrl: p.photo ? `/media/${p.photo}` : null, emoji: p.emoji,
+      title: p.name, subtitle: `your ${p.relation}`, photoUrl: photoFor(p), emoji: p.emoji,
       line: mems[0]?.text ?? null, quoteFrom: null, quote: null, summary: mems[1]?.text ?? null, status: null,
       buttons: [btn(`📞 Ask ${p.name} to call me`, "callme", { personId: p.id }, "blue")], readAloud: true, talk: true,
       to: config.ashaHandle, layout: { caption: `${p.name} · your ${p.relation}`, subcaption: mems[0]?.text ?? "" }, meta: { personId: p.id },

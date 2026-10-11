@@ -115,8 +115,10 @@ export function kvSet(key: string, value: string) {
 export function graph() {
   const nodes: any[] = [{ id: "asha", label: config.ashaName, kind: "asha", memories: 0 }];
   const count = (id: string) => (db.query("SELECT COUNT(*) AS n FROM memory WHERE deleted = 0 AND about = ?").get(id) as { n: number }).n;
-  for (const p of people()) nodes.push({ id: p.id, label: p.name, kind: "person", photo: p.photo ? `/media/${p.photo}` : null, relation: p.relation, memories: count(p.id) });
-  for (const e of entities()) if (!e.person_id) nodes.push({ id: e.id, label: e.name, kind: e.kind, memories: count(e.id) });
+  const memPhoto = (id: string) => (db.query("SELECT photo FROM memory WHERE deleted = 0 AND about = ? AND photo IS NOT NULL ORDER BY created_at DESC LIMIT 1").get(id) as { photo: string } | null)?.photo ?? null;
+  const media = (f: string | null) => (f ? `/media/${f}` : null);
+  for (const p of people()) nodes.push({ id: p.id, label: p.name, kind: "person", photo: media(p.photo ?? memPhoto(p.id)), relation: p.relation, memories: count(p.id) });
+  for (const e of entities()) if (!e.person_id) nodes.push({ id: e.id, label: e.name, kind: e.kind, photo: media(memPhoto(e.id)), memories: count(e.id) });
   const ids = new Set(nodes.map((n) => n.id));
   const links: any[] = [];
   for (const p of people()) links.push({ source: "asha", target: p.id, rel: p.relation.replace(/^her /, "") });
