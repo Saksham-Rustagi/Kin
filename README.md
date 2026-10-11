@@ -178,4 +178,3 @@ Device smoke tests from the build (local listen, cloud card, bridge, Gemini, Ele
 | ![](devpost/gallery/card_01_recognize.png) | ![](devpost/gallery/card_02_reply_as_her.png) | ![](devpost/gallery/card_03_sent_as_her.png) |
 | ![](devpost/gallery/card_04_protect.png) | ![](devpost/gallery/card_05_remind.png) | ![](devpost/gallery/card_06_today.png) |
 
-![Kin's thinking dashboard](devpost/gallery/dashboard.png)
