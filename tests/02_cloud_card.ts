@@ -17,8 +17,8 @@ console.log("2) sent app card:", card?.id);
 await new Promise((r) => setTimeout(r, 10000));
 await dm.send(edit(appCard("https://photon.codes/docs", { live: true }), card));
 console.log("3) edited the card in place (check the iPad: same bubble should change)");
-console.log("Now listening 2 min for replies / taps / voice notes to Kin...");
-const stopAt = Date.now() + 120000;
+console.log("Now listening for replies / taps / voice notes to Kin...");
+const stopAt = Date.now() + Number(process.env.LISTEN_MS ?? 900000);
 for await (const [space, message] of app.messages) {
   const c: any = message.content;
   console.log(`[${message.platform}] from=${message.sender?.id} type=${c.type}`, c.type === "text" ? c.text : (c.emoji ?? c.mimeType ?? ""));

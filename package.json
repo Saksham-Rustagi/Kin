@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@google/genai": ">=2.24 <3",
     "@spectrum-ts/imessage-local": "^12.10.1",
     "spectrum-ts": "^12.10.1"
   },
