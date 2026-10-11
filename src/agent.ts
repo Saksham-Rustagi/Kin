@@ -51,7 +51,7 @@ Tools always take card_id {{card_id}}. Never call a tool she hasn't agreed to. K
 export const FIRST_MESSAGE = "Hi {{asha_name}}, it's Kin, the helper your family set up. {{opening}}";
 
 const PLACEHOLDERS = {
-  asha_name: "Gammy", reason: "message", from_name: "Nicole", relation: "granddaughter", card_id: "c_demo",
+  asha_name: "Grandma", reason: "message", from_name: "Nicole", relation: "granddaughter", card_id: "c_demo",
   opening: "Nicole, your granddaughter, sent you a message. Would you like me to read it?",
   message_text: "Coming over Sunday with apple pie!", reminder_text: "", reply_options: "Yes, see you Sunday! | Call me later",
   memory_line: "Nicole brought you apple pie last summer.",

@@ -32,7 +32,7 @@ const priya = personByHandle("+15555550100")!;
 const asAsha = () => T.sent.filter((s) => s.kind === "as_asha").length;
 
 // Context card from Nicole
-await kin.onFamilyToAsha(priya, turn("+15555550100", "Hi Gammy! Coming over Sunday with apple pie again 🥧 Are you free for lunch?"));
+await kin.onFamilyToAsha(priya, turn("+15555550100", "Hi Grandma! Coming over Sunday with apple pie again 🥧 Are you free for lunch?"));
 const c1 = db.query("SELECT * FROM card WHERE type='context' ORDER BY created_at DESC LIMIT 1").get() as any;
 check("context card created", !!c1);
 const vars = talkVariables(c1.id);

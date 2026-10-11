@@ -52,7 +52,7 @@ export async function route(space: Space | null, message: Message) {
   const from = normalizeHandle(message.sender?.id);
 
   if (message.platform === "local_imessage") {
-    if (isKinLine(from)) return; // echo: Kin's own cloud messages also land in Gammy's chat.db
+    if (isKinLine(from)) return; // echo: Kin's own cloud messages also land in Grandma's chat.db
     if (!isAllowedLocalSender(from)) { ignoredCount++; log.info(`(ignored a local message from a non-test sender ${mask(from)}; ${ignoredCount} so far${config.allowSenders.length ? "" : " · TEST_SENDERS is empty, so nobody is let through"})`); return; }
     const isGroup = (space as any)?.type === "group";
     if (isGroup) { log.info(`group message from ${mask(from)}: G1 group mode not enabled in v1`); return; }

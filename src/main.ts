@@ -1,4 +1,4 @@
-// Kin: one Bun process. Local provider (Gammy's Mac) + cloud provider (Kin's line) + card server + dashboard.
+// Kin: one Bun process. Local provider (Grandma's Mac) + cloud provider (Kin's line) + card server + dashboard.
 import { Database } from "bun:sqlite";
 import { homedir } from "os";
 import { config } from "./config";

@@ -16,14 +16,14 @@ export function setTransport(t: Transport) { T = t; }
 
 export type Turn = { from: string; chatId: string | null; isGroup: boolean; texts: string[]; ids: string[]; at: Date; attachments: { name: string; mimeType: string; read?: () => Promise<Buffer> }[] };
 
-const call = () => config.ashaCalledBy; // "Gammy"
+const call = () => config.ashaCalledBy; // "Grandma"
 const today = () => new Date().toLocaleDateString("en-CA", { timeZone: config.tz });
 const CANNED = ["❤️ Thank you!", "Sounds good", "Call me soon"];
 /** Never send money, codes or personal info as her (hard rule 3), whatever the tap payload says. */
 const SENSITIVE = /\$|money|gift ?card|password|\bcode\b|bank|social security|card number|\d{4,}/i;
 
 // =====================================================================================
-// Family → Gammy (local, her real thread): RECOGNIZE
+// Family → Grandma (local, her real thread): RECOGNIZE
 // =====================================================================================
 export async function onFamilyToAsha(person: Person, turn: Turn) {
   const t0 = Date.now();
@@ -110,7 +110,7 @@ Fill the schema:
   void learnFromThread(person, text, turn.ids[0]);
 }
 
-/** Durable facts about the sender from Gammy's thread with ENROLLED family only (never anyone else's thread). */
+/** Durable facts about the sender from Grandma's thread with ENROLLED family only (never anyone else's thread). */
 async function learnFromThread(person: Person, text: string, msgId?: string) {
   if (!person.enrolled || looksTrivial(text) || text.split(/\s+/).length < 5) return;
   const r = await gen<ThreadFacts>("thread_facts", `Today is ${today()}. ${person.name} (${config.ashaName}'s ${person.relation}) wrote to ${config.ashaName}:
@@ -125,7 +125,7 @@ Extract ONLY durable, new facts about ${person.name} worth remembering for month
 }
 
 // =====================================================================================
-// Unknown → Gammy (local): PROTECT
+// Unknown → Grandma (local): PROTECT
 // =====================================================================================
 export async function onUnknownToAsha(turn: Turn) {
   const t0 = Date.now();
@@ -286,7 +286,7 @@ export async function onCardAction(cardId: string, action: string, payload: any)
 }
 
 // =====================================================================================
-// Gammy → Kin (cloud): tapbacks, "who is…", "tell Nicole to call me"
+// Grandma → Kin (cloud): tapbacks, "who is…", "tell Nicole to call me"
 // =====================================================================================
 export async function onAshaToKin(c: { type: string; text?: string; emoji?: string; targetId?: string }) {
   if (c.type === "reaction" && c.targetId) {
@@ -329,7 +329,7 @@ const outOfScope = () => T.sendText(config.ashaHandle, `I can help with your fam
 const sending = new Set<string>();
 
 // =====================================================================================
-// Gammy's voice notes → Kin (cloud): Gemini listens; nothing is sent as her without her tap.
+// Grandma's voice notes → Kin (cloud): Gemini listens; nothing is sent as her without her tap.
 // =====================================================================================
 export async function onAshaVoiceToKin(bytes: Buffer, mimeType: string, msgId: string) {
   const t0 = Date.now();
@@ -480,7 +480,7 @@ Classify the intent:
 For memory: entities (new names only), edges (src/dst are names; rel like owns, lives_in, works_at, studies_at, married_to, parent_of; label is a short human label like "dog", "works at"), memories (about = the name the fact is about; text = one third-person sentence; happened_on YYYY-MM-DD resolved against Now, or null). If the sender says "I", the name is ${person.name}.
 confirmation: a short warm reply to ${person.name} confirming what Kin will do, in Kin's voice ("Got it: Biscuit is Mike's dog 🐶"). Never claim to have done anything not listed.`, familySchema);
 
-  if (!u) { await reply("Sorry, I couldn't understand that just now. Try “Remember: …” or “Remind Gammy to …”."); return; }
+  if (!u) { await reply("Sorry, I couldn't understand that just now. Try “Remember: …” or “Remind Grandma to …”."); return; }
   switch (u.intent) {
     case "memory": {
       const kinds = new Map(u.entities.map((e) => [e.name.toLowerCase(), e.kind]));

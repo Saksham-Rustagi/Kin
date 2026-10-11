@@ -18,7 +18,7 @@ That's where she already is. Every new app is one more thing a person living wit
 **6. Scale and cost?**
 Per message: one Gemini Flash-Lite call that decides the card, plus a small fact-extraction call for longer family messages, and cached TTS that's only made for cards. A family produces tens of messages a day, so the AI cost is cents a month. Memory is a small SQLite graph that fits in a prompt, so there's no vector DB. Each family needs a Kin line (Photon) and, today, a Mac. A hosted version is next.
 
-**7. Consent: does Gammy agree to this?**
+**7. Consent: does Grandma agree to this?**
 She has to. The research is clear that her consent comes first, and that Kin should add to human contact rather than replace it (S31, S32). The product design starts with Kin asking her "Is that okay?" before anything happens. In this hackathon build the family and her consent are pre-seeded, and the in-chat consent flow is on our "next" list. Every send as her needs her tap or her spoken yes.
 
 **8. False positives in Protect?**
@@ -31,7 +31,7 @@ The wording rules come from dementia guidance (S14, S10, S11, S16): statements, 
 Reading her real threads and sending a reply *as her* needs a device signed into her Apple ID. Spectrum's local provider uses the Mac's Messages database and AppleScript to do that. Kin's own line (the cloud provider) handles the cards. Many families already have an old Mac; the hosted version would remove that need.
 
 **11. What's real and what's mocked in the demo?**
-Real: the iMessages on three devices, Kin's Photon line, the cards and in-place `edit()` updates, replies sent from Gammy's account, caregiver alerts, Gemini calls, ElevenLabs audio, and the Talk to Kin voice agent. Demo settings: the family and memories are made up and pre-seeded; the reminder clock is fast (minutes become seconds); and the family's phone numbers were registered with Photon ahead of time (the Pro shared pool requires it). Phone calls are not built; Talk to Kin happens in the card instead.
+Real: the iMessages on three devices, Kin's Photon line, the cards and in-place `edit()` updates, replies sent from Grandma's account, caregiver alerts, Gemini calls, ElevenLabs audio, and the Talk to Kin voice agent. Demo settings: the family and memories are made up and pre-seeded; the reminder clock is fast (minutes become seconds); and the family's phone numbers were registered with Photon ahead of time (the Pro shared pool requires it). Phone calls are not built; Talk to Kin happens in the card instead.
 
 **12. Business model?**
 A family subscription (around the cost of one streaming service) paid by the adult children, who are the ones looking for peace of mind. Later: partnerships with memory-care programs, home-care agencies and banks' elder-fraud teams. With 13M unpaid caregivers in the US (S1) and $7.7B in reported elder fraud losses in 2025 (S3), both the caregiving and the fraud side have real budgets.

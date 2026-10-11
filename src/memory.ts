@@ -22,7 +22,7 @@ export function verifyMemoryLine(memoryId: string | null, line: string | null, c
   if (!m || !cands.some((c) => c.id === memoryId)) return null;
   if (BANNED.test(line)) return null;
   if (line.length > 90) return null;
-  const grounded = (m.text + " " + person.name + " " + person.relation + " Gammy Gammy she he her his").toLowerCase();
+  const grounded = (m.text + " " + person.name + " " + person.relation + " Grandma Grandma she he her his").toLowerCase();
   const names = line.match(/\b[A-Z][a-z]+\b/g) ?? [];
   const stop = new Set(["She", "He", "They", "Her", "His", "The", "A", "An", "On", "In", "At", "Last", "This", "That", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December", "Sept", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "Jun", "Jul", "Aug", "Sep", "You", "Your", "With", "And"]);
   for (const n of names) if (!stop.has(n) && !grounded.includes(n.toLowerCase())) return null;
@@ -52,7 +52,7 @@ export function explainEntity(name: string): { id: string; text: string; ids: st
   return null;
 }
 
-/** Entities Gammy may not place (R3): known entities, or people, mentioned and not marked known_by_asha. */
+/** Entities Grandma may not place (R3): known entities, or people, mentioned and not marked known_by_asha. */
 export function unplacedMentions(mentionNames: string[], sender: Person): { name: string; id: string }[] {
   const out: { name: string; id: string }[] = [];
   for (const n of mentionNames) {

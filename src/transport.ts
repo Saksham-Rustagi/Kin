@@ -1,4 +1,4 @@
-// Transport: one Spectrum process, two providers. Cloud = Kin's own line; local = Gammy's Mac (send AS Gammy).
+// Transport: one Spectrum process, two providers. Cloud = Kin's own line; local = Grandma's Mac (send AS Grandma).
 import { Spectrum, app, edit, voice, type AppLayout, type Message, type Space } from "spectrum-ts";
 import { imessage } from "spectrum-ts/providers/imessage";
 import { localIMessage } from "@spectrum-ts/imessage-local";
@@ -81,7 +81,7 @@ export async function createSpectrumTransport(): Promise<Transport> {
         await s!.send(text);
         health.local = true;
         return true;
-      } catch (e) { log.error(`send as Gammy to ${mask(handle)} failed`, e); return false; }
+      } catch (e) { log.error(`send as Grandma to ${mask(handle)} failed`, e); return false; }
     },
     messages() {
       return (async function* () {

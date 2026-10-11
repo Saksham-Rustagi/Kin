@@ -30,13 +30,13 @@ export function seed() {
   G.run("raj", "attended", "diwali_2025", "celebrated", "priya", nowIso());
 
   const M = db.query("INSERT INTO memory (id, about, text, happened_on, added_by, source, created_at) VALUES (?,?,?,?,?,?,?)");
-  M.run("m_01", "priya", "Nicole visited Gammy on Sunday, Sept 27, and brought apple pie", "2026-09-27", "priya", "family_to_kin", nowIso());
+  M.run("m_01", "priya", "Nicole visited Grandma on Sunday, Sept 27, and brought apple pie", "2026-09-27", "priya", "family_to_kin", nowIso());
   M.run("m_02", "priya", "Nicole is studying nursing at UNC in Chapel Hill", null, "priya", "family_to_kin", nowIso());
   M.run("m_03", "raj", "Mike lives in Austin with his dog Biscuit", null, "priya", "family_to_kin", nowIso());
   M.run("m_04", "biscuit", "Biscuit is Mike's golden retriever", null, "priya", "family_to_kin", nowIso());
-  M.run("m_05", "diwali_2025", "Gammy, Nicole and Mike celebrated Thanksgiving 2025 together at Mike's house in Austin", "2025-10-20", "priya", "family_to_kin", nowIso());
-  M.run("m_06", "anita", "Linda takes care of Gammy's bills", null, "priya", "family_to_kin", nowIso());
-  M.run("m_07", "raj", "Mike calls Gammy every Sunday evening", null, "anita", "family_to_kin", nowIso());
+  M.run("m_05", "diwali_2025", "Grandma, Nicole and Mike celebrated Thanksgiving 2025 together at Mike's house in Austin", "2025-10-20", "priya", "family_to_kin", nowIso());
+  M.run("m_06", "anita", "Linda takes care of Grandma's bills", null, "priya", "family_to_kin", nowIso());
+  M.run("m_07", "raj", "Mike calls Grandma every Sunday evening", null, "anita", "family_to_kin", nowIso());
 }
 
 if (import.meta.main) {

@@ -30,9 +30,9 @@ const priya = personByHandle("+15555550100")!;
 
 // 1. Recognize: Nicole after 12 days, mentions Biscuit (R1 + R3) → context card with memory line + replies
 let n = T.sent.length;
-await kin.onFamilyToAsha(priya, turn("+15555550100", "Hi Gammy! Coming over Sunday with apple pie again 🥧 Biscuit says hi! Are you free for lunch?"));
+await kin.onFamilyToAsha(priya, turn("+15555550100", "Hi Grandma! Coming over Sunday with apple pie again 🥧 Biscuit says hi! Are you free for lunch?"));
 const card1 = T.sent.slice(n).find((s) => s.kind === "card");
-check("R1/R3 context card sent to Gammy", !!card1 && card1.to === "+15555550199", JSON.stringify(card1?.layout));
+check("R1/R3 context card sent to Grandma", !!card1 && card1.to === "+15555550199", JSON.stringify(card1?.layout));
 const c1 = db.query("SELECT * FROM card ORDER BY created_at DESC LIMIT 1").get() as any;
 const d1 = JSON.parse(c1.data);
 console.log("   line:", d1.line, "| summary:", d1.summary, "| replies:", d1.buttons.map((b: any) => b.label));
@@ -47,11 +47,11 @@ const html1 = renderCardHtml(c1.id) ?? "";
 const mainHtml = html1.slice(html1.indexOf('id="main"'), html1.indexOf('id="reply"'));
 check("know button on the reply screen only", html1.indexOf('data-act="know"') > html1.indexOf('id="reply"') && !mainHtml.includes('data-act="know"'));
 
-// 2. Tap a reply → sent AS Gammy to Nicole, card edited
+// 2. Tap a reply → sent AS Grandma to Nicole, card edited
 n = T.sent.length;
 const r = await kin.onCardAction(c1.id, "reply", d1.buttons[0].payload);
 check("reply tap ok", r.ok);
-check("sent as Gammy to Nicole", T.sent.slice(n).some((s) => s.kind === "as_asha" && s.to === "+15555550100"));
+check("sent as Grandma to Nicole", T.sent.slice(n).some((s) => s.kind === "as_asha" && s.to === "+15555550100"));
 check("card edited to replied", T.sent.slice(n).some((s) => s.kind === "edit") && getCard(c1.id)!.row.state === "replied");
 const again = await kin.onCardAction(c1.id, "reply", d1.buttons[0].payload);
 check("second tap is idempotent (no second send)", again.ok && T.sent.filter((s) => s.kind === "as_asha").length === 1);
@@ -85,7 +85,7 @@ check("Q2 trivial stays quiet", T.sent.length === n);
 n = T.sent.length;
 await kin.onUnknownToAsha(turn("nicole.scam@example.com", "Grandma it's Nicole, I lost my phone. I'm in trouble, please send $500 in gift cards and don't tell mom"));
 const prot = T.sent.slice(n);
-check("protect card to Gammy", prot.some((s) => s.kind === "card" && s.to === "+15555550199"));
+check("protect card to Grandma", prot.some((s) => s.kind === "card" && s.to === "+15555550199"));
 check("caregiver alerted", prot.some((s) => s.kind === "text" && s.to === "+15555550100" && /SCAM/.test(s.text ?? "")));
 check("never replies to the scammer", !prot.some((s) => s.to === "nicole.scam@example.com"));
 await kin.onFamilyToKin(priya, "+15555550100", "SCAM", crypto.randomUUID());
@@ -100,7 +100,7 @@ check("memory saved", !!(db.query("SELECT 1 FROM memory WHERE text LIKE '%Duke%'
 
 // 6. Reminder → card at T+0 (2s) → done → Nicole told
 n = T.sent.length;
-await kin.onFamilyToKin(priya, "+15555550100", "Remind Gammy to take her 2pm pill every day", crypto.randomUUID());
+await kin.onFamilyToKin(priya, "+15555550100", "Remind Grandma to take her 2pm pill every day", crypto.randomUUID());
 console.log("   reminder confirmation:", T.sent.slice(n).find((s) => s.kind === "text")?.text);
 await wait(4500);
 const rem = db.query("SELECT * FROM reminder ORDER BY created_at LIMIT 1").get() as any;
@@ -123,7 +123,7 @@ check("photo confirmation sent to Nicole", !!photoConf?.text);
 const { graph } = await import("../src/db");
 check("map node for Biscuit has the photo", graph().nodes.some((nd: any) => nd.id === "biscuit" && nd.photo === `/media/${pm?.photo}`));
 
-// 8. Gammy's voice note → "Send to Nicole?" card; nothing sent as her until she taps
+// 8. Grandma's voice note → "Send to Nicole?" card; nothing sent as her until she taps
 const { execFileSync } = await import("child_process");
 execFileSync("say", ["-o", "/tmp/kin_voice.aiff", "Tell Nicole I can't wait to see her"]);
 execFileSync("afconvert", ["-f", "WAVE", "-d", "LEI16@16000", "/tmp/kin_voice.aiff", "/tmp/kin_voice.wav"]);
@@ -133,8 +133,8 @@ await kin.onAshaVoiceToKin(readFileSync("/tmp/kin_voice.wav"), "audio/wav", cryp
 const vc = db.query("SELECT * FROM card WHERE type = 'info' ORDER BY created_at DESC LIMIT 1").get() as any;
 const vd = vc ? JSON.parse(vc.data) : null;
 console.log("   voice card:", vd?.title, "|", vd?.line);
-check("voice → confirmation card to Gammy", !!vd?.meta?.voiceReply && vd.meta.personId === "priya" && T.sent.slice(n).some((s) => s.kind === "card" && s.to === "+15555550199"));
-check("nothing sent as Gammy before her tap", T.sent.filter((s) => s.kind === "as_asha").length === asAshaBefore);
+check("voice → confirmation card to Grandma", !!vd?.meta?.voiceReply && vd.meta.personId === "priya" && T.sent.slice(n).some((s) => s.kind === "card" && s.to === "+15555550199"));
+check("nothing sent as Grandma before her tap", T.sent.filter((s) => s.kind === "as_asha").length === asAshaBefore);
 if (vc) { await kin.onCardAction(vc.id, "send_voice_reply", vd.buttons[0].payload); await kin.onCardAction(vc.id, "send_voice_reply", vd.buttons[0].payload); }
 const voiceSends = T.sent.slice(n).filter((s) => s.kind === "as_asha");
 check("tap → exactly one as_asha message to Nicole", voiceSends.length === 1 && voiceSends[0].to === "+15555550100", voiceSends[0]?.text);
@@ -147,7 +147,7 @@ n = T.sent.length;
 const tc = await sendTodayCard();
 const td = getCard(tc.id)!.data;
 console.log("   today:", td.title, "|", td.subtitle, "|", td.line, "|", td.summary);
-check("Today card sent to Gammy", T.sent.slice(n).some((s) => s.kind === "card" && s.to === "+15555550199") && td.title === "Good morning, Gammy" && td.emoji === "☀️");
+check("Today card sent to Grandma", T.sent.slice(n).some((s) => s.kind === "card" && s.to === "+15555550199") && td.title === "Good morning, Grandma" && td.emoji === "☀️");
 check("Today card lists today's reminder", /^\d{1,2}:\d{2} [AP]M · .*\(from Nicole\)/.test(td.line ?? ""), td.line ?? "");
 check("Today card lists tomorrow's visit", td.meta.items.includes("Tomorrow · Mike is visiting from Austin") && td.summary === td.meta.items[1] && td.buttons.length === 0 && !!td.readAloud && !!td.talk, JSON.stringify(td.meta.items));
 

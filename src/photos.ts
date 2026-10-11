@@ -75,7 +75,7 @@ Fill the schema:
   return gen<PhotoMemory>("photo_memory", [{ text: prompt }, inline("image/jpeg", jpeg)], photoMemorySchema, { timeoutMs: 20_000 });
 }
 
-/** One Gemini call: Gammy's voice note → transcript + what she wants. */
+/** One Gemini call: Grandma's voice note → transcript + what she wants. */
 export async function understandVoice(wav: Buffer, familyNames: string[], ashaName: string): Promise<VoiceIntent | null> {
   const prompt = `${ashaName}, 78, living with memory loss, sent Kin (her helper) this voice message. Her family: ${familyNames.join(", ")}.
 Fill the schema:
