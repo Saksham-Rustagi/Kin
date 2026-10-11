@@ -8,7 +8,7 @@ const { PROJECT_ID, PROJECT_SECRET, GRANDMA_HANDLE } = process.env;
 const ALLOW = (process.env.TEST_SENDERS ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
 const allowed = (id?: string) => !!id && ALLOW.some((a) => id.toLowerCase().includes(a.replace(/^\+?1?/, "")));
 let ignored = 0;
-if (!ALLOW.length) { console.error("Set TEST_SENDERS in .env (the phone that will text this Mac), e.g. +19195551234"); process.exit(1); }
+if (!ALLOW.length) { console.error("Set TEST_SENDERS in .env (the phone that will text this Mac), e.g. +15555550123"); process.exit(1); }
 
 const app = await Spectrum({ projectId: PROJECT_ID!, projectSecret: PROJECT_SECRET!, providers: [localIMessage.config(), imessage.config()] });
 const im = imessage(app);

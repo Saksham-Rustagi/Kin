@@ -7,7 +7,7 @@ const ALLOW = (process.env.TEST_SENDERS ?? "").split(",").map((s) => s.trim().to
 const allowed = (id?: string) => !!id && ALLOW.some((a) => id.toLowerCase().includes(a.replace(/^\+?1?/, "")));
 let ignored = 0;
 let echoed = false;
-if (!ALLOW.length) { console.error("Set TEST_SENDERS in .env (the phone that will text this Mac), e.g. +19195551234"); process.exit(1); }
+if (!ALLOW.length) { console.error("Set TEST_SENDERS in .env (the phone that will text this Mac), e.g. +15555550123"); process.exit(1); }
 
 const app = await Spectrum({ providers: [localIMessage.config()] });
 console.log("Listening to this Mac's Messages... send a text to it from another phone. Ctrl+C to stop.");
