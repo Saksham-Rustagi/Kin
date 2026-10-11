@@ -1,7 +1,8 @@
 // HTTP: card pages + taps (public, via tunnel), talk, media, and the localhost-only dashboard.
 import { existsSync } from "fs";
 import { config } from "./config";
-import { graph } from "./db";
+import { caregiver, db, graph, personById } from "./db";
+import { createReminder } from "./reminders";
 import { log, subscribe, recentEvents, emit, type DashEvent } from "./events";
 import { checkToken, getCard, renderCardHtml, cardToken } from "./cards/service";
 import { renderTalk } from "./cards/talk";
@@ -98,6 +99,16 @@ export function startServer(opts: { health: () => { local: boolean; cloud: boole
           if (p === "/dash") return html(renderDashboard({}));
           if (p === "/dash/graph.json") return Response.json(graph());
           if (p === "/dash/reset" && req.method === "POST") { opts.onReset?.(); return Response.json({ ok: true }); }
+          if (p === "/dash/test-reminder" && req.method === "POST") {
+            const priya = personById("priya") ?? caregiver();
+            if (!priya) return Response.json({ ok: false, error: "no caregiver" }, { status: 409 });
+            const r = await createReminder(priya, { text: "Take your 2pm pill 💊", due_local: null, daily: true, in_minutes: 0.25 });
+            // Always 15 s from now, even if DEMO_REMINDER_SEC is set.
+            const due = new Date(Date.now() + 15_000).toISOString();
+            db.query("UPDATE reminder SET due_at = ? WHERE id = ?").run(due, r.id);
+            log.info(`dashboard: test reminder ${r.id} from ${priya.name}, due in 15 s`);
+            return Response.json({ ok: true, id: r.id, due });
+          }
           if (p === "/dash/events") {
             let unsub = () => {};
             const stream = new ReadableStream({

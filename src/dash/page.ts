@@ -93,6 +93,13 @@ h1{margin:0;font-size:32px;font-weight:800;letter-spacing:-.01em;color:#08385d;t
 .pill.demo{color:#3f2a86;background:linear-gradient(180deg,#f8f3ff 0%,#e2d5ff 49%,#c8b2ff 50%,#ddd0ff 100%)}
 .pill .dot{width:10px;height:10px;border-radius:50%;background:currentColor;box-shadow:0 0 0 3px rgba(255,255,255,.65)}
 .pill.ok .dot,.pill.demo .dot{animation:blink 1.6s ease-in-out infinite}
+.dbtn{font:inherit;font-size:16px;font-weight:800;padding:.4em 1em;border-radius:999px;cursor:pointer;white-space:nowrap;color:#08385d;
+  border:1px solid rgba(255,255,255,.95);
+  background:linear-gradient(180deg,#f2fbff 0%,#c9ecff 49%,#8fd3f7 50%,#bfe8fd 100%);
+  box-shadow:inset 0 1px 0 #fff,0 3px 8px rgba(0,60,110,.2)}
+.dbtn:active{transform:translateY(1px);box-shadow:inset 0 1px 0 #fff,0 1px 3px rgba(0,60,110,.2)}
+.dbtn:disabled{opacity:.55;cursor:default}
+.dbtn.reset{color:#7a1d12;background:linear-gradient(180deg,#fff6f3 0%,#ffd9cf 49%,#ffb4a5 50%,#ffd2c8 100%)}
 .clock{font-size:21px;font-weight:800;color:var(--ink2);font-variant-numeric:tabular-nums;margin-left:4px;min-width:5.2em;text-align:right}
 
 main{position:relative;z-index:1;flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,4fr) minmax(0,6fr);gap:22px;padding:0 22px 22px}
@@ -602,8 +609,42 @@ function loadGraph() {
     .then((g) => { applyGraph(g, !graphLoadedOnce); graphLoadedOnce = true; })
     .catch((err) => addLog({ at: new Date().toISOString(), level: "warn", text: "Couldn't load memory map: " + err.message }));
 }
+function clearGraph() {
+  [gNodes, gLinks, gRel].forEach((g) => { while (g.firstChild) g.removeChild(g.firstChild); });
+  nodes.length = 0; byId.clear(); links.length = 0; linkKeys.clear(); pending = [];
+  updateCounts();
+}
+function clearFeed() {
+  while (feed.firstChild) feed.removeChild(feed.firstChild);
+  const empty = el("div", "empty"); empty.id = "empty"; empty.appendChild(el("div", "orb")); empty.appendChild(document.createTextNode("Waiting for family messages…"));
+  feed.appendChild(empty);
+  nDecisions = 0; nProtect = 0; updateStats();
+}
+function post(url) {
+  return fetch(url, { method: "POST" }).then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
+}
+function wireButtons() {
+  const reset = $("b-reset"), rem = $("b-reminder");
+  reset.onclick = () => {
+    if (!confirm("Reset the demo? This re-seeds the family and clears cards, reminders and memories.")) return;
+    reset.disabled = true;
+    post("/dash/reset")
+      .then(() => { clearFeed(); clearGraph(); graphLoadedOnce = false; return loadGraph(); })
+      .then(() => addLog({ at: new Date().toISOString(), level: "info", text: "Demo reset ✓" }))
+      .catch((err) => addLog({ at: new Date().toISOString(), level: "error", text: "Reset failed: " + err.message }))
+      .finally(() => { reset.disabled = false; });
+  };
+  rem.onclick = () => {
+    rem.disabled = true;
+    post("/dash/test-reminder")
+      .then(() => addLog({ at: new Date().toISOString(), level: "info", text: "Test reminder from Priya: due in 15 s" }))
+      .catch((err) => addLog({ at: new Date().toISOString(), level: "error", text: "Test reminder failed: " + err.message }))
+      .finally(() => { setTimeout(() => { rem.disabled = false; }, 3000); });
+  };
+}
 function startLive() {
   setConn("connecting");
+  wireButtons();
   loadGraph();
   let hadError = false;
   const es = new EventSource("/dash/events");
@@ -680,6 +721,8 @@ export function renderDashboard(opts: DashOptions = {}): string {
     '    <span id="h-cloud" class="pill">Cloud <span class="v">…</span></span>\n' +
     '    <span id="h-tunnel" class="pill">Tunnel <span class="v">…</span></span>\n' +
     '    <span id="h-gemini" class="pill">Gemini <span class="v">–</span></span>\n' +
+    '    <button id="b-reminder" class="dbtn" type="button">▶ Test reminder</button>\n' +
+    '    <button id="b-reset" class="dbtn reset" type="button">↺ Reset demo</button>\n' +
     '    <span id="clock" class="clock"></span>\n' +
     "  </div>\n</header>\n" +
     "<main>\n" +

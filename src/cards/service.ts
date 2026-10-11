@@ -49,6 +49,8 @@ export async function createCard(type: CardType, state: string, data: CardData):
   db.query("INSERT INTO card (id, type, state, data, version, created_at, updated_at) VALUES (?,?,?,?,1,?,?)")
     .run(id, type, state, JSON.stringify(data), nowIso(), nowIso());
   if (!transport) return { id, sent: false };
+  // Cards are only ever for Asha (never to family or an unknown sender).
+  if (data.to !== config.ashaHandle) { log.error(`card ${id} refused: recipient is not Asha`); return { id, sent: false }; }
   const ref = await transport.sendCard(data.to, cardUrl(id, 1), data.layout);
   if (!ref) { log.warn(`card ${id} not sent`); return { id, sent: false }; }
   refs.set(id, ref);

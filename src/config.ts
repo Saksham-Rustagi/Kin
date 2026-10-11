@@ -24,7 +24,7 @@ export const config = {
   /** Caregiver's phone (Priya). */
   caregiverHandle: normalizeHandle(env.CAREGIVER_HANDLE || env.PRIYA_HANDLE),
   kinLines: new Set(list(env.KIN_LINE_HANDLES).map(normalizeHandle)),
-  /** Testing safety net: only these senders are ever processed from the local (Asha's Mac) stream. Empty = everyone. */
+  /** Testing safety net: only these senders are ever processed from the local (Asha's Mac) stream. Empty = nobody; "*" = everyone. */
   allowSenders: list(env.TEST_SENDERS).map(normalizeHandle),
   publicBase: (env.PUBLIC_BASE_URL || "").replace(/\/$/, ""),
   signingSecret: env.KIN_SIGNING_SECRET || "dev-secret",
@@ -50,8 +50,10 @@ export const config = {
   resumeLocal: env.KIN_RESUME_LOCAL !== "0",
 };
 
+/** Fails closed: an empty TEST_SENDERS lets nobody through. TEST_SENDERS=* opts out of the allowlist explicitly. */
 export function isAllowedLocalSender(h: string): boolean {
-  if (!config.allowSenders.length) return true;
+  if (!config.allowSenders.length) return false;
+  if (config.allowSenders.includes("*")) return true;
   const n = normalizeHandle(h);
   return config.allowSenders.includes(n);
 }

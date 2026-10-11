@@ -19,6 +19,8 @@ export type Turn = { from: string; chatId: string | null; isGroup: boolean; text
 const call = () => config.ashaCalledBy; // "Nani"
 const today = () => new Date().toLocaleDateString("en-CA", { timeZone: config.tz });
 const CANNED = ["❤️ Thank you!", "Sounds good", "Call me soon"];
+/** Never send money, codes or personal info as her (hard rule 3), whatever the tap payload says. */
+const SENSITIVE = /\$|money|gift ?card|password|\bcode\b|bank|social security|card number|\d{4,}/i;
 
 // =====================================================================================
 // Family → Asha (local, her real thread): RECOGNIZE
@@ -196,6 +198,7 @@ export async function onCardAction(cardId: string, action: string, payload: any)
     const textOut = String(payload?.text ?? "").slice(0, 120);
     const person = personById(data.meta.personId);
     if (!textOut || !person) return { ok: false };
+    if (SENSITIVE.test(textOut)) { log.warn(`tap: blocked a reply with money/code words on card ${cardId}`); return { ok: false }; }
     const ok = await T.sendAsAsha(data.meta.replyTo, data.meta.chatId ?? null, textOut);
     if (!ok) return { ok: false };
     saveMessage({ id: newId("out"), via: "local", direction: "out_as_asha", to: data.meta.replyTo, text: textOut, card_id: cardId });
