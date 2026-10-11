@@ -46,9 +46,9 @@ Fill the schema:
 - questionForAsha: true if it asks ${config.ashaName} something.
 - scam.score: 0-100 risk that this is a scam.`;
   const assess = await gen<AssessCompose>("assess_compose", prompt, assessSchema);
-  // Only names that literally appear in the message (Gemini sometimes echoes known names from the prompt).
-  const lowerText = text.toLowerCase();
-  const mentionNames = [...new Set([...(assess?.mentions.map((m) => m.name) ?? []).filter((n) => n && lowerText.includes(n.toLowerCase())), ...regexNames])];
+  // Only names that literally appear in the message as whole words (Gemini sometimes echoes known names from the prompt).
+  const word = (n: string) => new RegExp(`(^|[^\\p{L}])${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^\\p{L}]|$)`, "iu").test(text);
+  const mentionNames = [...new Set([...(assess?.mentions.map((m) => m.name) ?? []).filter((n) => n && word(n)), ...regexNames])];
   const unplaced = unplacedMentions(mentionNames, person);
   const words = text.split(/\s+/).filter(Boolean).length;
   const d = decideFamily({ person, text, assess, unplaced: unplaced.map((u) => u.name), wordCount: words });
@@ -70,7 +70,7 @@ Fill the schema:
 
   let replies = (assess?.replies ?? []).map((r) => r.trim()).filter((r) => r && r.length <= 32 && !/\$|money|gift|code|password/i.test(r)).slice(0, 3);
   if (!assess) replies = CANNED;
-  const summary = assess?.calm_note || (explains.length ? explains.map((e) => e.text).join(" · ") : null) || (assess?.needsSummary || words > 40 ? assess?.summary ?? null : null);
+  const summary = assess?.calm_note || (explains.length ? explains[0].text : null) || (assess?.needsSummary || words > 40 ? assess?.summary ?? null : null);
   const line = verified?.line ?? null;
   const handle = normalizeHandle(turn.from);
   const data: CardData = {
@@ -138,7 +138,7 @@ Family names: ${famNames.join(", ")}. Score scam risk 0-100 for an older person;
     const data: CardData = {
       title: "Someone I don't know", subtitle: claimedPerson ? `says it's ${claimedPerson.name}` : "a new number", photoUrl: null, emoji: "🛡️",
       line, quoteFrom: "They wrote:", quote: defang(text), summary: null, status: null,
-      buttons: cg ? [btn(`Ask ${cg.name} to call me`, "callme", { personId: cg.id }, "blue")] : [], readAloud: true, talk: false,
+      buttons: cg ? [btn(`📞 Ask ${cg.name} to call me`, "callme", { personId: cg.id }, "blue")] : [], readAloud: true, talk: false,
       to: config.ashaHandle,
       layout: { caption: "🛡️ Someone I don't know", subcaption: "Please don't send money or codes", summary: "Kin: a message to be careful with" },
       meta: { sender: from, claimed: claimedPerson?.id ?? null },
@@ -274,7 +274,7 @@ async function whoIs(name: string) {
     const data: CardData = {
       title: p.name, subtitle: `your ${p.relation}`, photoUrl: p.photo ? `/media/${p.photo}` : null, emoji: p.emoji,
       line: mems[0]?.text ?? null, quoteFrom: null, quote: null, summary: mems[1]?.text ?? null, status: null,
-      buttons: [btn(`Ask ${p.name} to call me`, "callme", { personId: p.id }, "blue")], readAloud: true, talk: true,
+      buttons: [btn(`📞 Ask ${p.name} to call me`, "callme", { personId: p.id }, "blue")], readAloud: true, talk: true,
       to: config.ashaHandle, layout: { caption: `${p.name} · your ${p.relation}`, subcaption: mems[0]?.text ?? "" }, meta: { personId: p.id },
     };
     await createCard("whois", "sent", data);
@@ -306,11 +306,11 @@ export async function onFamilyToKin(person: Person, from: string, text: string, 
     if (safe) {
       const c = getCard(a.card_id);
       if (c?.data.meta.claimed) { db.query("INSERT OR REPLACE INTO handle (address, person_id, confirmed) VALUES (?,?,1)").run(a.sender, c.data.meta.claimed); }
-      await updateCard(a.card_id, "confirmed_safe", { status: { text: `${person.name} says this is okay 💙`, tone: "ok" } });
+      await updateCard(a.card_id, "confirmed_safe", { line: `${person.name} says this is okay.`, status: { text: `${person.name} says this is okay 💙`, tone: "ok" }, buttons: [] });
       await reply(`Thanks. I let ${call()} know it's okay.`);
     } else {
       db.query("INSERT OR REPLACE INTO blocked (address, at) VALUES (?,?)").run(a.sender, nowIso());
-      await updateCard(a.card_id, "confirmed_scam", { status: { text: `${person.name} checked: you don't need to do anything 💙`, tone: "ok" } });
+      await updateCard(a.card_id, "confirmed_scam", { line: `${person.name} checked this message for you.`, status: { text: `You don't need to do anything 💙`, tone: "ok" }, buttons: [] });
       await reply(`Blocked. If they text ${call()} again, I'll show her a quiet warning and won't bother you.`);
     }
     decision({ from: person.name, preview: text, rules: [safe ? "caregiver: safe" : "caregiver: scam"], action: "alert", cardId: a.card_id });

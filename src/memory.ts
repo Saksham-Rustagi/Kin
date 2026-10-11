@@ -67,12 +67,13 @@ export function unplacedMentions(mentionNames: string[], sender: Person): { name
 /** Regex mention finder (fallback when Gemini is down). */
 export function regexMentions(text: string): string[] {
   const names: string[] = [];
-  const lower = text.toLowerCase();
+  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const has = (a: string) => new RegExp(`(^|[^\\p{L}])${esc(a)}([^\\p{L}]|$)`, "iu").test(text);
   for (const e of entities()) {
     const all = [e.name, ...(JSON.parse(e.aliases || "[]") as string[])];
-    if (all.some((a) => lower.includes(a.toLowerCase()))) names.push(e.name);
+    if (all.some(has)) names.push(e.name);
   }
-  for (const p of people()) if (new RegExp(`\\b${p.name}\\b`, "i").test(text)) names.push(p.name);
+  for (const p of people()) if (has(p.name)) names.push(p.name);
   return [...new Set(names)];
 }
 

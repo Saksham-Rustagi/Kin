@@ -55,10 +55,15 @@ async function durationOf(file: string): Promise<number> {
   return m ? Math.max(1, Math.round(Number(m[1]))) : 5;
 }
 
+const inflight = new Set<string>();
 export async function readAloud(cardId: string) {
   const c = getCard(cardId);
   const script = scriptFor(cardId);
   if (!c || !script) return;
+  const key = `${cardId}_v${c.row.version}`;
+  if (inflight.has(key)) return; // a second tap while the first voice note is on its way does nothing
+  inflight.add(key);
+  setTimeout(() => inflight.delete(key), 20000);
   const t0 = Date.now();
   try {
     const out = await tts(script, `${config.dataDir}/media/tts_${cardId}_v${c.row.version}`);
