@@ -1,0 +1,13 @@
+diff --git a/dist/index.js b/dist/index.js
+index 184d04c52ade362b80f24aa65b7c91ceff2c1ee3..9ef5ade3ea6c2c189c97cde9d2834d8f47a5d937 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -413,7 +413,7 @@ var MESSAGE_FIELDS = [
+   "message.expressive_send_style_id",
+   "message.balloon_bundle_id",
+   "message.destination_caller_id",
+-  "message.ck_chat_id as ck_chat_id",
++  "NULL as ck_chat_id", /* kin: macOS 15 chat.db has no ck_chat_id */
+   "message.was_detonated",
+   "message.expire_state",
+   "message.share_status",

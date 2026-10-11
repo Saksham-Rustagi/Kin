@@ -8,10 +8,14 @@
     "spectrum-ts": "^12.10.1"
   },
   "devDependencies": {
+    "@photon-ai/cli": "^2.2.0",
     "@types/bun": "^1.4.2",
     "typescript": "^7.0.2"
   },
   "trustedDependencies": [
     "protobufjs"
-  ]
+  ],
+  "patchedDependencies": {
+    "@photon-ai/imessage-kit@3.0.0": "patches/@photon-ai%2Fimessage-kit@3.0.0.patch"
+  }
 }
