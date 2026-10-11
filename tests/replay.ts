@@ -1,5 +1,6 @@
 // Replay test: the whole pipeline with a FAKE transport (no phones), real Gemini. Run: bun tests/replay.ts
 process.env.KIN_DB = "data/replay.db";
+process.env.KIN_NO_PREFETCH = "1";
 process.env.DEMO_FAST_CLOCK = "1";
 process.env.DEMO_REMINDER_SEC = "2";
 process.env.CAREGIVER_HANDLE = "+15555550100";

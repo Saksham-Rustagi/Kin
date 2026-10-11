@@ -8,7 +8,7 @@ import { candidatesFor, explainEntity, unplacedMentions, regexMentions, verifyMe
 import { createCard, updateCard, getCard, btn, latestCard, cardBySpectrumId, type CardData } from "./cards/service";
 import type { Transport } from "./transport";
 import { createReminder, markReminderDone, snoozeReminder, reminderByCard } from "./reminders";
-import { readAloud } from "./voice";
+import { readAloud, prefetchAudio } from "./voice";
 
 let T: Transport;
 export function setTransport(t: Transport) { T = t; }
@@ -91,6 +91,7 @@ Fill the schema:
     meta: { personId: person.id, replyTo: handle, chatId: turn.chatId, memoryId: verified?.id ?? null, rules: d.rules },
   };
   const card = await createCard("context", "sent", data);
+  prefetchAudio(card.id); // pre-make the Listen audio so it plays instantly
   decision({ from: person.name, preview, rules: [...d.rules, ...(verified ? [`M ${verified.id}`] : [])], action: "card", memoryId: verified?.id ?? null, cardId: card.id, ms: Date.now() - t0, highlight });
   void learnFromThread(person, text, turn.ids[0]);
 }
@@ -144,6 +145,7 @@ Family names: ${famNames.join(", ")}. Score scam risk 0-100 for an older person;
       meta: { sender: from, claimed: claimedPerson?.id ?? null },
     };
     const card = await createCard("protect", "blocked", data);
+    prefetchAudio(card.id);
     if (!blocked && cg) {
       const alertId = newId("a");
       const who = claimedPerson && claimedPerson.id === cg.id ? "Someone claiming to be YOU" : claimedPerson ? `Someone claiming to be ${claimedPerson.name}` : "Someone I don't know";

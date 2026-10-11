@@ -32,7 +32,7 @@ function avatar(v: CardView, size: number): string {
 
 function utilRow(v: CardView, extra: string[] = []): string {
   const items = [...extra];
-  if (v.readAloud) items.push(`<button class="u" data-act="readaloud">🔊<span>Listen</span></button>`);
+  if (v.readAloud) items.push(`<button class="u" data-listen="1">🔊<span>Listen</span></button>`);
   if (v.talk) items.push(`<button class="u" data-talk="1">🎙️<span>Talk to Kin</span></button>`);
   return items.length ? `<div class="row">${items.join("")}</div>` : "";
 }
@@ -165,8 +165,26 @@ ${compact}
   function show(t){ toast.textContent=t; toast.style.display="block"; }
   function busy(on){ [].forEach.call(document.querySelectorAll("button"),function(b){b.disabled=on}); }
   function go(screen){ [].forEach.call(document.querySelectorAll(".screen"),function(s){ s.hidden = s.id!==screen; }); }
+  var audio=null;
+  function listenLabel(b, playing){ b.innerHTML = playing ? "⏹<span>Stop</span>" : "🔊<span>Listen</span>"; }
+  function listen(b){
+    if(audio && !audio.paused){ audio.pause(); audio.currentTime=0; listenLabel(b,false); toast.style.display="none"; return; }
+    if(!audio){ audio=new Audio("/card/"+ID+"/audio?t="+T); audio.preload="auto"; }
+    show("Reading it to you… 🔊"); listenLabel(b,true);
+    audio.onended=function(){ listenLabel(b,false); toast.style.display="none"; };
+    audio.onplaying=function(){ setTimeout(function(){ toast.style.display="none"; }, 1500); };
+    var p=audio.play();
+    if(p&&p.catch) p.catch(function(err){
+      // audio blocked in this view → fall back to a voice message in the thread
+      listenLabel(b,false);
+      try{ fetch("/diag",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({page:"card",id:ID,ev:"listen-fail",msg:String(err&&err.name)})}); }catch(e){}
+      fetch("/card/"+ID+"/act",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({t:T,v:V,action:"readaloud",payload:{}})});
+      show("I'm sending it as a voice message 🔊"); setTimeout(function(){toast.style.display="none"},2500);
+    });
+  }
   document.addEventListener("click", function(ev){
     var b=ev.target.closest("button"); if(!b||b.disabled) return;
+    if(b.dataset.listen){ listen(b); return; }
     if(b.dataset.screen){ go(b.dataset.screen); return; }
     if(b.dataset.talk){ location.href="/talk/"+ID+"?t="+T; return; }
     var act=b.dataset.act; if(!act) return;

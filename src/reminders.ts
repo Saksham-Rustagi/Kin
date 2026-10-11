@@ -4,6 +4,7 @@ import { db, handlesOf, newId, nowIso, personById, type Person, type Reminder } 
 import { decision, log } from "./events";
 import { createCard, updateCard, btn, type CardData } from "./cards/service";
 import type { Transport } from "./transport";
+import { prefetchAudio } from "./voice";
 
 let T: Transport;
 export function setReminderTransport(t: Transport) { T = t; }
@@ -64,6 +65,7 @@ async function deliver(r: Reminder) {
   } else {
     const card = await createCard("reminder", "due", cardData(r, p));
     db.query("UPDATE reminder SET card_id = ? WHERE id = ?").run(card.id, r.id);
+    prefetchAudio(card.id);
   }
   db.query("UPDATE reminder SET status = 'due', step = 1 WHERE id = ?").run(r.id);
   decision({ from: p?.name ?? "family", preview: r.text, rules: ["T+0 reminder due"], action: "reminder", highlight: p ? [p.id] : [] });
