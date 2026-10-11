@@ -1,5 +1,8 @@
 # Kin 💙
 
+![Kin: Recognize, Reply as her, Protect, Remind](devpost/gallery/hero.png)
+
+
 **Kin helps a grandmother living with memory loss know who's texting her, stay safe from scams, and get reminders from the people she loves, all inside iMessage and without anyone changing how they text her.**
 
 Built in 24 hours at HackNC 2026 for the Photon AI Agent track. Built with Photon Spectrum, Gemini 3.5 Flash-Lite and ElevenLabs.
@@ -167,3 +170,12 @@ Device smoke tests from the build (local listen, cloud card, bridge, Gemini, Ele
 - **A hosted version**, so families without a Mac can use Kin.
 - **Real phone calls** through Photon SIP, reusing the same ElevenLabs agent and tools, for the T+45 reminder step and "call me".
 - A consent flow in chat (Kin asks Asha "Is that okay?" before anything starts), the ☀️ morning card, and co-design sessions with people living with dementia and their caregivers before any real launch *(S32, S30)*.
+
+
+## Gallery
+| | | |
+|---|---|---|
+| ![](devpost/gallery/card_01_recognize.png) | ![](devpost/gallery/card_02_reply_as_her.png) | ![](devpost/gallery/card_03_sent_as_her.png) |
+| ![](devpost/gallery/card_04_protect.png) | ![](devpost/gallery/card_05_remind.png) | ![](devpost/gallery/card_06_today.png) |
+
+![Kin's thinking dashboard](devpost/gallery/dashboard.png)

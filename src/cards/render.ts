@@ -52,7 +52,7 @@ export function renderCard(v: CardView): string {
   } else {
     if (v.line) body += `<div class="line" data-opt="3">${e(v.line)}</div>`;
     if (v.summary) body += `<div class="explain" data-opt="1">${e(v.summary)}</div>`;
-    if (v.quote) body += `<div class="quote" data-opt="2"><b>${e(v.quoteFrom || "The message:")}</b> ${e(v.quote)}</div>`;
+    if (v.quote) body += `<div class="quote" data-opt="2"><div class="qt"><b>${e(v.quoteFrom || "The message:")}</b> ${e(v.quote)}</div></div>`;
   }
   if (v.status) body += `<div class="status ${v.status.tone}">${e(v.status.text)}</div>`;
 
@@ -114,8 +114,8 @@ h2{font-size:15px;font-weight:600;margin-top:2px;color:#123a5e}
 .body>*{flex-shrink:0}
 .line{font-size:16px;font-weight:700;line-height:1.22;color:${th.accent};display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .explain{font-size:15px;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.quote{font-size:15px;line-height:1.25;max-height:calc(2.5em + 12px);background:#eef7fd;border:1px solid #cfe6f5;border-radius:12px;padding:5px 9px;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.quote{font-size:15px;line-height:1.25;background:#eef7fd;border:1px solid #cfe6f5;border-radius:12px;padding:5px 9px;overflow:hidden}
+.quote .qt{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-height:2.5em}
 .quote b{color:#123a5e}
 .big{font-size:22px;font-weight:800;line-height:1.2;text-align:center;padding:10px 8px;border-radius:14px;background:#effbef;border:1px solid #bfe8c1;color:#0f4d1d}
 .status{font-size:17px;font-weight:800;line-height:1.25;text-align:center;padding:9px 10px;border-radius:14px}
